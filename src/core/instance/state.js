@@ -296,18 +296,6 @@ export function stateMixin(Vue: Class<Component>) {
     propsDef.get = function () {
         return this._props
     }
-    if (process.env.NODE_ENV !== 'production') {
-        dataDef.set = function () {
-            warn(
-                'Avoid replacing instance root $data. ' + 'Use nested data properties instead.',
-                this
-            )
-        }
-        propsDef.set = function () {
-            warn(`$props is readonly.`, this)
-        }
-    }
-
     // 访问实例的this.$data返回实例的_data属性
     Object.defineProperty(Vue.prototype, '$data', dataDef)
 

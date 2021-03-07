@@ -28,12 +28,6 @@ export function toggleObserving(value: boolean) {
     shouldObserve = value
 }
 
-/**
- * Observer class that is attached to each observed
- * object. Once attached, the observer converts the target
- * object's property keys into getter/setters that
- * collect dependencies and dispatch updates.
- */
 export class Observer {
     value: any
     dep: Dep
@@ -78,23 +72,10 @@ export class Observer {
     }
 }
 
-// helpers
-
-/**
- * Augment a target Object or Array by intercepting
- * the prototype chain using __proto__
- */
 function protoAugment(target, src: Object) {
-    /* eslint-disable no-proto */
     target.__proto__ = src
-    /* eslint-enable no-proto */
 }
 
-/**
- * Augment a target Object or Array by defining
- * hidden properties.
- */
-/* istanbul ignore next */
 function copyAugment(target: Object, src: Object, keys: Array<string>) {
     for (let i = 0, l = keys.length; i < l; i++) {
         const key = keys[i]
@@ -102,11 +83,6 @@ function copyAugment(target: Object, src: Object, keys: Array<string>) {
     }
 }
 
-/**
- * Attempt to create an observer instance for a value,
- * returns the new observer if successfully observed,
- * or the existing observer if the value already has one.
- */
 export function observe(value: any, asRootData: ?boolean): Observer | void {
     if (!isObject(value) || value instanceof VNode) {
         return
@@ -129,9 +105,6 @@ export function observe(value: any, asRootData: ?boolean): Observer | void {
     return ob
 }
 
-/**
- * Define a reactive property on an Object.
- */
 export function defineReactive(
     obj: Object,
     key: string,
@@ -193,19 +166,7 @@ export function defineReactive(
     })
 }
 
-/**
- * Set a property on an object. Adds the new property and
- * triggers change notification if the property doesn't
- * already exist.
- */
 export function set(target: Array<any> | Object, key: any, val: any): any {
-    // 如果target是undefined或者是普通数据类型的值，给出警告
-    // if (process.env.NODE_ENV !== 'production' &&
-    //   (isUndef(target) || isPrimitive(target))
-    // ) {
-    //   warn(`Cannot set reactive property on undefined, null, or primitive value: ${(target: any)}`)
-    // }
-
     if (Array.isArray(target) && isValidArrayIndex(key)) {
         target.length = Math.max(target.length, key)
         target.splice(key, 1, val)
@@ -219,15 +180,6 @@ export function set(target: Array<any> | Object, key: any, val: any): any {
 
     const ob = (target: any).__ob__
 
-    // if (target._isVue || (ob && ob.vmCount)) {
-    //     process.env.NODE_ENV !== 'production' &&
-    //         warn(
-    //             'Avoid adding reactive properties to a Vue instance or its root $data ' +
-    //                 'at runtime - declare it upfront in the data option.'
-    //         )
-    //     return val
-    // }
-
     if (!ob) {
         target[key] = val
         return val
@@ -240,20 +192,14 @@ export function set(target: Array<any> | Object, key: any, val: any): any {
     return val
 }
 
-/**
- * Delete a property and trigger change if necessary.
- */
 export function del(target: Array<any> | Object, key: any) {
-    if (process.env.NODE_ENV !== 'production' && (isUndef(target) || isPrimitive(target))) {
-        warn(
-            `Cannot delete reactive property on undefined, null, or primitive value: ${(target: any)}`
-        )
-    }
     if (Array.isArray(target) && isValidArrayIndex(key)) {
         target.splice(key, 1)
         return
     }
     const ob = (target: any).__ob__
+
+    // 不能修改vue实例的属性
     if (target._isVue || (ob && ob.vmCount)) {
         process.env.NODE_ENV !== 'production' &&
             warn(
@@ -272,10 +218,6 @@ export function del(target: Array<any> | Object, key: any) {
     ob.dep.notify()
 }
 
-/**
- * Collect dependencies on array elements when the array is touched, since
- * we cannot intercept array element access like property getters.
- */
 function dependArray(value: Array<any>) {
     for (let e, i = 0, l = value.length; i < l; i++) {
         e = value[i]
