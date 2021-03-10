@@ -29,22 +29,28 @@ export function initMixin(Vue: Class<Component>) {
             vm.$options = mergeOptions(resolveConstructorOptions(vm.constructor), options || {}, vm)
         }
 
-        /* istanbul ignore else */
-        if (process.env.NODE_ENV !== 'production') {
-            initProxy(vm)
-        } else {
-            vm._renderProxy = vm
-        }
-        // expose real self
+        vm._renderProxy = vm
         vm._self = vm
 
+        // 初始化组件关系变量，生命周期状态变量
         initLifecycle(vm)
+
+        // 初始化事件容器、hook事件标记
         initEvents(vm)
+
+        // 初始化渲染相关
         initRender(vm)
+
         callHook(vm, 'beforeCreate')
+
+        // 初始化inject
         initInjections(vm)
+
         initState(vm)
+
+        // 初始化实例的_provide属性
         initProvide(vm)
+
         callHook(vm, 'created')
 
         if (vm.$options.el) {
