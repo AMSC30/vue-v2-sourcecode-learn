@@ -35,10 +35,13 @@ export class Observer {
 
     constructor(value: any) {
         this.value = value
+        // 依赖收集器
         this.dep = new Dep()
         this.vmCount = 0
         def(value, '__ob__', this)
+
         if (Array.isArray(value)) {
+            // 根据浏览器是否支持__proto__属性
             if (hasProto) {
                 protoAugment(value, arrayMethods)
             } else {
@@ -50,11 +53,6 @@ export class Observer {
         }
     }
 
-    /**
-     * Walk through all properties and convert them into
-     * getter/setters. This method should only be called when
-     * value type is Object.
-     */
     walk(obj: Object) {
         const keys = Object.keys(obj)
         for (let i = 0; i < keys.length; i++) {
@@ -62,9 +60,6 @@ export class Observer {
         }
     }
 
-    /**
-     * Observe a list of Array items.
-     */
     observeArray(items: Array<any>) {
         for (let i = 0, l = items.length; i < l; i++) {
             observe(items[i])
@@ -83,12 +78,16 @@ function copyAugment(target: Object, src: Object, keys: Array<string>) {
     }
 }
 
+// observe的本质是将一个对象类型的数据进行数据劫持，并添加__ob__属性
 export function observe(value: any, asRootData: ?boolean): Observer | void {
+    // 如果value不是一个对象或者是一个VNode对象，直接返回
     if (!isObject(value) || value instanceof VNode) {
         return
     }
+
     let ob: Observer | void
     if (hasOwn(value, '__ob__') && value.__ob__ instanceof Observer) {
+        // 如果value有Observe的实例
         ob = value.__ob__
     } else if (
         shouldObserve &&
@@ -119,7 +118,6 @@ export function defineReactive(
         return
     }
 
-    // cater for pre-defined getter/setters
     const getter = property && property.get
     const setter = property && property.set
     if ((!getter || setter) && arguments.length === 2) {
@@ -127,6 +125,7 @@ export function defineReactive(
     }
 
     let childOb = !shallow && observe(val)
+
     Object.defineProperty(obj, key, {
         enumerable: true,
         configurable: true,
@@ -149,11 +148,6 @@ export function defineReactive(
             if (newVal === value || (newVal !== newVal && value !== value)) {
                 return
             }
-            /* eslint-enable no-self-compare */
-            if (process.env.NODE_ENV !== 'production' && customSetter) {
-                customSetter()
-            }
-            // #7981: for accessor properties without setter
             if (getter && !setter) return
             if (setter) {
                 setter.call(obj, newVal)

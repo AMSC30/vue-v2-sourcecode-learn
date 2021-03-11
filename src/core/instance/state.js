@@ -89,6 +89,7 @@ function initProps(vm: Component, propsOptions: Object) {
 function initData(vm: Component) {
     let data = vm.$options.data
     data = vm._data = typeof data === 'function' ? getData(data, vm) : data || {}
+
     if (!isPlainObject(data)) {
         data = {}
         process.env.NODE_ENV !== 'production' &&
@@ -98,7 +99,6 @@ function initData(vm: Component) {
                 vm
             )
     }
-    // proxy data on instance
     const keys = Object.keys(data)
     const props = vm.$options.props
     const methods = vm.$options.methods
@@ -121,8 +121,7 @@ function initData(vm: Component) {
             proxy(vm, `_data`, key)
         }
     }
-    // observe data
-    observe(data, true /* asRootData */)
+    observe(data, true)
 }
 
 export function getData(data: Function, vm: Component): any {
@@ -221,6 +220,7 @@ function initMethods(vm: Component, methods: Object) {
     const props = vm.$options.props
     for (const key in methods) {
         if (process.env.NODE_ENV !== 'production') {
+            // 校验methods值的类型
             if (typeof methods[key] !== 'function') {
                 warn(
                     `Method "${key}" has type "${typeof methods[
@@ -230,6 +230,7 @@ function initMethods(vm: Component, methods: Object) {
                     vm
                 )
             }
+            // 函数名是否与props中属性冲突
             if (props && hasOwn(props, key)) {
                 warn(`Method "${key}" has already been defined as a prop.`, vm)
             }
@@ -240,6 +241,7 @@ function initMethods(vm: Component, methods: Object) {
                 )
             }
         }
+        // 将方法挂载到vue实例上，如果methods各个属性值不是一个函数返回一个空的函数，否则将函数的this绑定到vue实例上
         vm[key] = typeof methods[key] !== 'function' ? noop : bind(methods[key], vm)
     }
 }

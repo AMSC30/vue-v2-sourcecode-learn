@@ -53,7 +53,6 @@ function mergeData(to: Object, from: ?Object): Object {
 
     for (let i = 0; i < keys.length; i++) {
         key = keys[i]
-        // in case the object is already observed...
         if (key === '__ob__') continue
         toVal = to[key]
         fromVal = from[key]
