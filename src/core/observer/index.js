@@ -45,8 +45,10 @@ export class Observer {
             if (hasProto) {
                 protoAugment(value, arrayMethods)
             } else {
+                // 重写数组方法
                 copyAugment(value, arrayMethods, arrayKeys)
             }
+            // 将数组的每一项进行响应式处理
             this.observeArray(value)
         } else {
             this.walk(value)
