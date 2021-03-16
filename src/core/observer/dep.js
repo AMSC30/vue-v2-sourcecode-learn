@@ -30,16 +30,19 @@ export default class Dep {
 
     depend() {
         if (Dep.target) {
+            // 调用watcher的addDep方法
             Dep.target.addDep(this)
         }
     }
 
     notify() {
+        // 通知watcher进行更新
         const subs = this.subs.slice()
         if (process.env.NODE_ENV !== 'production' && !config.async) {
             subs.sort((a, b) => a.id - b.id)
         }
         for (let i = 0, l = subs.length; i < l; i++) {
+            // 调用watcher的update方法
             subs[i].update()
         }
     }
