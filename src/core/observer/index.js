@@ -34,21 +34,27 @@ export class Observer {
     vmCount: number // number of vms that have this object as root $data
 
     constructor(value: any) {
+        // 第一步：将一个拥有依赖收集器的ob挂载到对象的__ob__属性上
         this.value = value
         // 依赖收集器
         this.dep = new Dep()
         this.vmCount = 0
         def(value, '__ob__', this)
 
+        // 第二步：处理数组或者对象，如果是数组，重写方法，如果是对象，重写对象属性的getter和setter
         if (Array.isArray(value)) {
             // 根据浏览器是否支持__proto__属性
             if (hasProto) {
+                // 通过修改__proto__的指向覆盖数组实例的原型
                 protoAugment(value, arrayMethods)
             } else {
+                // 重写实例的方法，但是保留数组的原型指向
                 copyAugment(value, arrayMethods, arrayKeys)
             }
+            // 对数组的每一项进行响应式处理
             this.observeArray(value)
         } else {
+            // 将对象的每个属性的getter和setter进行重写
             this.walk(value)
         }
     }
@@ -104,6 +110,7 @@ export function observe(value: any, asRootData: ?boolean): Observer | void {
     return ob
 }
 
+// 重写对象的getter和setter
 export function defineReactive(
     obj: Object,
     key: string,
@@ -111,6 +118,7 @@ export function defineReactive(
     customSetter?: ?Function,
     shallow?: boolean
 ) {
+    // 创建一个依赖收集器 这里是一个闭包变量，属性的getter和setter函数可以访问到
     const dep = new Dep()
 
     const property = Object.getOwnPropertyDescriptor(obj, key)
@@ -120,31 +128,48 @@ export function defineReactive(
 
     const getter = property && property.get
     const setter = property && property.set
+
+    // 拿到属性值，这里也可以理解为一个闭包变量，通过getter和setter进行访问
     if ((!getter || setter) && arguments.length === 2) {
         val = obj[key]
     }
 
+    // 如果属性值是一个对象，再对属性值进行响应式处理，并获取到属性值的ob属性
+    // 换言之，如果属性值是一个对象，这个属性的getter和setter就可以访问到属性值的ob
+    // 这个值也可以理解为一个闭包变量，在getter和setter中访问到
     let childOb = !shallow && observe(val)
 
+    // 至此，属性的getter和setter有三个闭包变量：1.依赖收集器 2.属性值 3.属性值的ob
+
+    // 开始重写getter和setter
     Object.defineProperty(obj, key, {
         enumerable: true,
         configurable: true,
         get: function reactiveGetter() {
+            // 获取到属性值
             const value = getter ? getter.call(obj) : val
+
+            // 如果是watcher在访问该属性，进行依赖收集
             if (Dep.target) {
+                // 闭包中的依赖收集器进行依赖收集
                 dep.depend()
+                // 如果属性值有ob属性，在属性值ob属性中的依赖收集器进行依赖收集
                 if (childOb) {
                     childOb.dep.depend()
+                    // 如果属性值是一个数组，且数组的项为一个对象类型，则该对象的ob的依赖收集器进行依赖收集
                     if (Array.isArray(value)) {
                         dependArray(value)
                     }
                 }
             }
+            // 返回属性值
             return value
         },
         set: function reactiveSetter(newVal) {
+            // 获取到属性值
             const value = getter ? getter.call(obj) : val
-            /* eslint-disable no-self-compare */
+
+            //如果设置的新的值与原来的值相同，直接进行返回
             if (newVal === value || (newVal !== newVal && value !== value)) {
                 return
             }
@@ -154,7 +179,10 @@ export function defineReactive(
             } else {
                 val = newVal
             }
+            // 设置了新的值以后，将新的值进行响应式处理
             childOb = !shallow && observe(newVal)
+
+            // 通知依赖进行更新
             dep.notify()
         }
     })
