@@ -48,17 +48,10 @@ export class Observer {
                 // 通过修改__proto__的指向覆盖数组实例的原型
                 protoAugment(value, arrayMethods)
             } else {
-<<<<<<< HEAD
                 // 重写实例的方法，但是保留数组的原型指向
                 copyAugment(value, arrayMethods, arrayKeys)
             }
             // 对数组的每一项进行响应式处理
-=======
-                // 重写数组方法
-                copyAugment(value, arrayMethods, arrayKeys)
-            }
-            // 将数组的每一项进行响应式处理
->>>>>>> ce65ade113ddf88fa5ba856192327cfb77abf933
             this.observeArray(value)
         } else {
             // 将对象的每个属性的getter和setter进行重写
