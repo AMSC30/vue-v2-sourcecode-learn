@@ -64,7 +64,9 @@ if (typeof Promise !== 'undefined' && isNative(Promise)) {
 
 export function nextTick(cb?: Function, ctx?: Object) {
     let _resolve
+    // 将函数推入到一个队列当中
     callbacks.push(() => {
+        // 如果在调用nextTick方法时，没有传入回调函数，执行resolve方法，将返回的promise对象变为resolved状态
         if (cb) {
             try {
                 cb.call(ctx)
@@ -75,11 +77,14 @@ export function nextTick(cb?: Function, ctx?: Object) {
             _resolve(ctx)
         }
     })
+    // 如果任务队列没有在任务推入中,将执行任务队列的方法放到下一个事件循环中
+    // 可能是通过宏任务,也可能是通过微任务来执行队列的
     if (!pending) {
         pending = true
         timerFunc()
     }
     // $flow-disable-line
+    // 没有传入回调函数的话，返回一个promise对象
     if (!cb && typeof Promise !== 'undefined') {
         return new Promise(resolve => {
             _resolve = resolve

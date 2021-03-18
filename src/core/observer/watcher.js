@@ -77,6 +77,7 @@ export default class Watcher {
             // 此方法有两个作用
             // 一个是进行DOM更新
             // 一个是进行依赖收集
+            // getter方法是以传入的第一个参数为上下人进行执行的
             value = this.getter.call(vm, vm)
         } catch (e) {
             if (this.user) {
@@ -131,6 +132,7 @@ export default class Watcher {
     }
 
     update() {
+        // lazy属性可以组织watcher进行更新
         if (this.lazy) {
             this.dirty = true
         } else if (this.sync) {
@@ -156,6 +158,7 @@ export default class Watcher {
                 // 执行回调函数
                 if (this.user) {
                     try {
+                        // cb也是以第一个参数为执行上下文来执行的
                         this.cb.call(this.vm, value, oldValue)
                     } catch (e) {
                         handleError(e, this.vm, `callback for watcher "${this.expression}"`)
