@@ -15,9 +15,10 @@ export function initUse(Vue: GlobalAPI) {
         // 获取use方法第二项到最后一项的参数
         const args = toArray(arguments, 1)
 
-        // 传入构造函数,拼接参数
+        // 传入Vue构造函数,拼接参数
         args.unshift(this)
 
+        // 调用传进来的插件，可能是一个函数，可能是一个对象
         if (typeof plugin.install === 'function') {
             // 如果是个对象,直接调用对象的install方法
             plugin.install.apply(plugin, args)
@@ -26,8 +27,10 @@ export function initUse(Vue: GlobalAPI) {
             plugin.apply(null, args)
         }
 
-        // 将插件翻入列表中
+        // 将插件推入到Vue构造函数的插件列表中
         installedPlugins.push(plugin)
+
+        //返回Vue构造函数
         return this
     }
 }

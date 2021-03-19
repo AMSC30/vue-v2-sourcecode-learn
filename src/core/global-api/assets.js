@@ -16,11 +16,13 @@ export function initAssetRegisters(Vue: GlobalAPI) {
                     definition.name = definition.name || id
                     definition = this.options._base.extend(definition)
                 }
-                // 如果指令是一个函数
+                // 如果指令是一个函数，将其转换为一个对象，指令的值为一个对象
                 if (type === 'directive' && typeof definition === 'function') {
                     definition = { bind: definition, update: definition }
                 }
                 // 注册到全局中
+                // 到目前为止
+                // 指令为一个对象，组件为一个构造函数，过滤器为传进来的参数
                 this.options[type + 's'][id] = definition
                 return definition
             }

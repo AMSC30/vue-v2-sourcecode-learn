@@ -55,16 +55,23 @@ export function initGlobalAPI(Vue: GlobalAPI) {
 
     // keep-alive组件
     extend(Vue.options.components, builtInComponents)
+    // 结果:
+    // options:{
+    // _base:Vue,
+    // components:{keep-alive},
+    // directives:{},
+    // filters:{}
+    // }
 
     // 全局的api
 
-    // 构造函数的use方法
+    // 构造函数的use方法，本质上是调用传进来的方法
     initUse(Vue)
 
-    // 构造函数的mixin方法，全局混入，通过合并默认options与mixin传入的options
+    // 构造函数的mixin方法，本质上是将一个选项和Vue构造函数上默认的选项进行合并生成新的默认选项
     initMixin(Vue)
 
-    // 构造函数extend方法
+    // 创建一个子类构造函数
     initExtend(Vue) //
 
     // 定义全局component、directive、filter的注册方法，这些方法都会改变全局默认options

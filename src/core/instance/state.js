@@ -282,10 +282,10 @@ export function stateMixin(Vue: Class<Component>) {
     propsDef.get = function () {
         return this._props
     }
-    // 访问实例的this.$data返回实例的_data属性
+    // 访问实例的this.$data返回实例的_data属性，_data是在init中赋值的
     Object.defineProperty(Vue.prototype, '$data', dataDef)
 
-    // 访问实例的this.$props返回实例的_prop属性
+    // 访问实例的this.$props返回实例的_prop属性,_props是在init中赋值的
     Object.defineProperty(Vue.prototype, '$props', propsDef)
 
     // 在原型对象上声明$set、$delete方法
