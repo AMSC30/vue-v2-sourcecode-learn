@@ -12,7 +12,7 @@ export function initAssetRegisters(Vue: GlobalAPI) {
                 return this.options[type + 's'][id]
             } else {
                 if (type === 'component' && isPlainObject(definition)) {
-                    // 如果没有在组件描述中定义name，则使用注册时候的名字
+                    // 如果没有在组件选项中定义name，则使用注册时候的名字
                     definition.name = definition.name || id
                     definition = this.options._base.extend(definition)
                 }
