@@ -13,7 +13,7 @@ export function initProvide(vm: Component) {
 }
 
 export function initInjections(vm: Component) {
-    // 根据inject选项，从当前实例触发，获取inject对象
+    // 根据inject选项，从当前实例出发，获取inject对象
     const result = resolveInject(vm.$options.inject, vm)
 
     // 如果存在inject，做响应式处理
@@ -56,13 +56,15 @@ export function resolveInject(inject: any, vm: Component): ?Object {
             let source = vm
 
             while (source) {
-                // 从当前实例的provide开始查找from对应的值
+                // 从当前实例的父实例的provide开始查找from对应的值，不会从当前实例的_provide是因为还没进行initProvide
                 if (source._provided && hasOwn(source._provided, provideKey)) {
                     result[key] = source._provided[provideKey]
                     break
                 }
                 source = source.$parent
             }
+
+            // 如果向上查找一直没有找到就使用描述中的default，可能是一个函数，就在当前实例上调用，其他值就直接使用
             if (!source) {
                 // 可以在from后面指定一个default
                 if ('default' in inject[key]) {

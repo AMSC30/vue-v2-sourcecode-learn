@@ -28,8 +28,6 @@ import {
     isPlainObject
 } from 'shared/util'
 
-const strats = config.optionMergeStrategies
-
 if (process.env.NODE_ENV !== 'production') {
     strats.el = strats.propsData = function (parent, child, vm, key) {
         if (!vm) {
@@ -42,9 +40,6 @@ if (process.env.NODE_ENV !== 'production') {
     }
 }
 
-/**
- * Helper that recursively merges two data objects together.
- */
 function mergeData(to: Object, from: ?Object): Object {
     if (!from) return to
     let key, toVal, fromVal
@@ -83,18 +78,14 @@ export function mergeDataOrFn(parentVal: any, childVal: any, vm?: Component): ?F
         }
     } else {
         return function mergedInstanceDataFn() {
-            // instance merge
             const instanceData = typeof childVal === 'function' ? childVal.call(vm, vm) : childVal
             const defaultData = typeof parentVal === 'function' ? parentVal.call(vm, vm) : parentVal
-            if (instanceData) {
-                return mergeData(instanceData, defaultData)
-            } else {
-                return defaultData
-            }
+
+            return instanceData ? mergeData(instanceData, defaultData) : defaultData
         }
     }
 }
-
+// 合并后返回一个闭包
 strats.data = function (parentVal: any, childVal: any, vm?: Component): ?Function {
     if (!vm) {
         if (childVal && typeof childVal !== 'function') {
@@ -113,48 +104,7 @@ strats.data = function (parentVal: any, childVal: any, vm?: Component): ?Functio
 
     return mergeDataOrFn(parentVal, childVal, vm)
 }
-
-function mergeHook(
-    parentVal: ?Array<Function>,
-    childVal: ?Function | ?Array<Function>
-): ?Array<Function> {
-    const res = childVal
-        ? parentVal
-            ? parentVal.concat(childVal)
-            : Array.isArray(childVal)
-            ? childVal
-            : [childVal]
-        : parentVal
-    return res ? dedupeHooks(res) : res
-}
-
-function dedupeHooks(hooks) {
-    const res = []
-    for (let i = 0; i < hooks.length; i++) {
-        if (res.indexOf(hooks[i]) === -1) {
-            res.push(hooks[i])
-        }
-    }
-    return res
-}
-
-LIFECYCLE_HOOKS.forEach(hook => {
-    strats[hook] = mergeHook
-})
-
-function mergeAssets(parentVal: ?Object, childVal: ?Object, vm?: Component, key: string): Object {
-    const res = Object.create(parentVal || null)
-    if (childVal) {
-        process.env.NODE_ENV !== 'production' && assertObjectType(key, childVal, vm)
-        return extend(res, childVal)
-    } else {
-        return res
-    }
-}
-
-ASSET_TYPES.forEach(function (type) {
-    strats[type + 's'] = mergeAssets
-})
+const strats = config.optionMergeStrategies
 
 strats.watch = function (
     parentVal: ?Object,
@@ -167,23 +117,34 @@ strats.watch = function (
     if (childVal === nativeWatch) childVal = undefined
     /* istanbul ignore if */
     if (!childVal) return Object.create(parentVal || null)
+
+    // watch选项必须为一个对象形式
     if (process.env.NODE_ENV !== 'production') {
         assertObjectType(key, childVal, vm)
     }
+
     if (!parentVal) return childVal
+
     const ret = {}
     extend(ret, parentVal)
+
     for (const key in childVal) {
         let parent = ret[key]
         const child = childVal[key]
+        // 如果有父选项，将父选项编程一个数组
         if (parent && !Array.isArray(parent)) {
             parent = [parent]
         }
+
+        // 将子选项推入到父选项中
         ret[key] = parent ? parent.concat(child) : Array.isArray(child) ? child : [child]
     }
+
+    // watch合并完成后，每个属性的值是一个数组
     return ret
 }
 
+// 后者覆盖前者
 strats.props = strats.methods = strats.inject = strats.computed = function (
     parentVal: ?Object,
     childVal: ?Object,
@@ -199,11 +160,82 @@ strats.props = strats.methods = strats.inject = strats.computed = function (
     if (childVal) extend(ret, childVal)
     return ret
 }
-strats.provide = mergeDataOrFn
+strats.provide = function (parentVal: any, childVal: any, vm?: Component): ?Function {
+    if (!vm) {
+        // in a Vue.extend merge, both should be functions
+        if (!childVal) {
+            return parentVal
+        }
+        if (!parentVal) {
+            return childVal
+        }
+
+        return function mergedDataFn() {
+            return mergeData(
+                typeof childVal === 'function' ? childVal.call(this, this) : childVal,
+                typeof parentVal === 'function' ? parentVal.call(this, this) : parentVal
+            )
+        }
+    } else {
+        return function mergedInstanceDataFn() {
+            // instance merge
+            const instanceData = typeof childVal === 'function' ? childVal.call(vm, vm) : childVal
+            const defaultData = typeof parentVal === 'function' ? parentVal.call(vm, vm) : parentVal
+            if (instanceData) {
+                return mergeData(instanceData, defaultData)
+            } else {
+                return defaultData
+            }
+        }
+    }
+}
+
+// 静态资源components、filters、directives直接用后者属性覆盖前者属性
+ASSET_TYPES.forEach(function (type) {
+    strats[type + 's'] = mergeAssets
+})
+
+// 生命周期的合并将后者放入前者的队列后面
+LIFECYCLE_HOOKS.forEach(hook => {
+    strats[hook] = mergeHook
+})
 
 // 默认合并策略为子覆盖父
 const defaultStrat = function (parentVal: any, childVal: any): any {
     return childVal === undefined ? parentVal : childVal
+}
+function mergeHook(
+    parentVal: ?Array<Function>,
+    childVal: ?Function | ?Array<Function>
+): ?Array<Function> {
+    const res = childVal
+        ? parentVal
+            ? parentVal.concat(childVal)
+            : Array.isArray(childVal)
+            ? childVal
+            : [childVal]
+        : parentVal
+    // 去重
+    if (res) {
+        const result = []
+        for (let i = 0; i < hooks.length; i++) {
+            if (result.indexOf(hooks[i]) === -1) {
+                result.push(hooks[i])
+            }
+        }
+        return (res = result)
+    }
+    return res
+}
+
+function mergeAssets(parentVal: ?Object, childVal: ?Object, vm?: Component, key: string): Object {
+    const res = Object.create(parentVal || null)
+    if (childVal) {
+        process.env.NODE_ENV !== 'production' && assertObjectType(key, childVal, vm)
+        return extend(res, childVal)
+    } else {
+        return res
+    }
 }
 
 export function validateComponentName(name: string) {
@@ -238,6 +270,7 @@ function normalizeProps(options: Object, vm: ?Component) {
         for (const key in props) {
             val = props[key]
             name = camelize(key)
+            // 如果不以对象的形式存在，值只能是type
             res[name] = isPlainObject(val) ? val : { type: val }
         }
     }
@@ -297,12 +330,16 @@ export function mergeOptions(parent: Object, child: Object, vm?: Component): Obj
     // 序列化指令，如果指令值为一个函数，那么将函数作为指令描述中bind和update的值，如果是一个对象，这个对象作为指令的描述
     normalizeDirectives(child)
 
+    // 保证自定义的属性拥有最高的优先级
     if (!child._base) {
+        // 如果传进来的有extend属性，先将extend与parent进行合并
         if (child.extends) {
             parent = mergeOptions(parent, child.extends, vm)
         }
         if (child.mixins) {
-            // 将混入的mixin与默认选项合并，所以优先级为：默认->mixin->当前options
+            // 如果有mixin属性，将mixin中的每个选项与parent进行合并
+            // mixin数组中，越靠后属性的优先级越高
+            // 可以看书，mixin中的每一项都是vue实例的选项格式
             for (let i = 0, l = child.mixins.length; i < l; i++) {
                 parent = mergeOptions(parent, child.mixins[i], vm)
             }

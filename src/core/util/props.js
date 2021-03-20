@@ -18,13 +18,17 @@ export function validateProp(
     vm?: Component
 ): any {
     const prop = propOptions[key]
+    // 能否从propsData中获取到值，propsData是从父组件中获取到的
     const absent = !hasOwn(propsData, key)
     let value = propsData[key]
 
+    // 标识我们需要的类型有没有布尔类型
     const booleanIndex = getTypeIndex(Boolean, prop.type)
 
+    // 需要布尔类型
     if (booleanIndex > -1) {
         if (absent && !hasOwn(prop, 'default')) {
+            // 无法从父组件中获取到，同时没有定义default，值默认为false
             value = false
         } else if (value === '' || value === hyphenate(key)) {
             const stringIndex = getTypeIndex(String, prop.type)
@@ -35,6 +39,7 @@ export function validateProp(
     }
 
     if (value === undefined) {
+        // 没有在父组件中获取到值，返回默认值
         value = getPropDefaultValue(vm, prop, key)
         const prevShouldObserve = shouldObserve
         toggleObserving(true)
@@ -154,11 +159,6 @@ function assertType(
     }
 }
 
-/**
- * Use function string name to check built-in types,
- * because a simple equality check will fail when running
- * across different vms / iframes.
- */
 function getType(fn) {
     const match = fn && fn.toString().match(/^\s*function (\w+)/)
     return match ? match[1] : ''

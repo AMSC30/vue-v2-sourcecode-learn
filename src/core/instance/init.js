@@ -1,14 +1,11 @@
 /* @flow */
 
-import config from '../config'
-import { initProxy } from './proxy'
 import { initState } from './state'
 import { initRender } from './render'
 import { initEvents } from './events'
-import { mark, measure } from '../util/perf'
 import { initLifecycle, callHook } from './lifecycle'
 import { initProvide, initInjections } from './inject'
-import { extend, mergeOptions, formatComponentName } from '../util/index'
+import { extend, mergeOptions } from '../util/index'
 
 let uid = 0
 
@@ -26,6 +23,9 @@ export function initMixin(Vue: Class<Component>) {
         } else {
             // 初始化实例选项
             // 将构造函数上的options选项合传入的options进行合并挂载到实例的$options属性上
+            // 1.将props等属性进行序列化成规范的格式
+            // 2.将extend、mixins先进行合并
+            // 3.根据合并策略进行合并：data的合并（成为一个函数）、watch的合并（成为一个数组）、生命周期的合并（成为一个数组）、其他选项的合并（子属性覆盖父属性）
             vm.$options = mergeOptions(resolveConstructorOptions(vm.constructor), options || {}, vm)
         }
 
@@ -41,14 +41,18 @@ export function initMixin(Vue: Class<Component>) {
         // 初始化渲染相关
         initRender(vm)
 
+        // 至此，实例的选项序列化完成、选项合并完成、组件关系及相关渲染更新方法赋值完成
         callHook(vm, 'beforeCreate')
 
-        // 初始化inject
+        // 开始初始化数据
+
+        // 初始化inject，不断向上查找实例的provide
         initInjections(vm)
 
+        // 初始化props、methods、data、computed、watch
         initState(vm)
 
-        // 初始化实例的_provide属性
+        // 初始化实例的_provide属性，可以为一个函数的形式
         initProvide(vm)
 
         callHook(vm, 'created')
