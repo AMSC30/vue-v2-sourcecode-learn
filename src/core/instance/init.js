@@ -46,7 +46,8 @@ export function initMixin(Vue: Class<Component>) {
 
         // 开始初始化数据
 
-        // 初始化inject，不断向上查找实例的provide
+        // 初始化inject，不断向上查找实例的provide，生成一个结果对象
+        // 遍历对象的每个属性，将每个属性挂载到vue实例上
         initInjections(vm)
 
         // 初始化props、methods、data、computed、watch

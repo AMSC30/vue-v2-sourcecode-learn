@@ -58,7 +58,8 @@ export function initState(vm: Component) {
         observe((vm._data = {}), true)
     }
 
-    // 本质上根据每个属性生成一个watcher保存在vue实例的_computedWatchers中，再创建对象属性的访问描述，同时将每个属性挂载到vue实例上
+    // 本质上根据每个属性生成一个watcher保存在vue实例的_computedWatchers中，
+    // 再创建对象属性的访问描述，同时将每个属性挂载到vue实例上
     if (opts.computed) initComputed(vm, opts.computed)
 
     if (opts.watch && opts.watch !== nativeWatch) {
@@ -167,10 +168,9 @@ function initComputed(vm: Component, computed: Object) {
             warn(`Getter is missing for computed property "${key}".`, vm)
         }
 
-        //
         if (!isSSR) {
             // 每一个计算属性对应一个watcher，放在_computedWatchers中
-            watchers[key] = new Watcher(vm, getter || noop, noop, computedWatcherOptions)
+            watchers[key] = new Watcher(vm, getter |       | noop, noop, computedWatcherOptions)
         }
 
         if (!(key in vm)) {

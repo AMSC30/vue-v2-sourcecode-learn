@@ -18,7 +18,9 @@ export function initInjections(vm: Component) {
 
     // 如果存在inject，做响应式处理
     if (result) {
+        // 只对顶层属性做响应式处理
         toggleObserving(false)
+
         Object.keys(result).forEach(key => {
             /* istanbul ignore else */
             if (process.env.NODE_ENV !== 'production') {
@@ -34,6 +36,7 @@ export function initInjections(vm: Component) {
                 defineReactive(vm, key, result[key])
             }
         })
+
         toggleObserving(true)
     }
 }

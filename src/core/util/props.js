@@ -39,7 +39,7 @@ export function validateProp(
     }
 
     if (value === undefined) {
-        // 没有在父组件中获取到值，返回默认值
+        // 没有在父组件中获取到值，返回默认值，并对默认值做深度响应式处理
         value = getPropDefaultValue(vm, prop, key)
         const prevShouldObserve = shouldObserve
         toggleObserving(true)

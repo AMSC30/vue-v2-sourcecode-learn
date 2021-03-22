@@ -131,7 +131,7 @@ strats.watch = function (
     for (const key in childVal) {
         let parent = ret[key]
         const child = childVal[key]
-        // 如果有父选项，将父选项编程一个数组
+        // 如果有父选项，将父选项格式化为一个数组
         if (parent && !Array.isArray(parent)) {
             parent = [parent]
         }
