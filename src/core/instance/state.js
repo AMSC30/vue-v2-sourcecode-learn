@@ -170,7 +170,7 @@ function initComputed(vm: Component, computed: Object) {
 
         if (!isSSR) {
             // 每一个计算属性对应一个watcher，放在_computedWatchers中
-            watchers[key] = new Watcher(vm, getter |       | noop, noop, computedWatcherOptions)
+            watchers[key] = new Watcher(vm, getter || noop, noop, computedWatcherOptions)
         }
 
         if (!(key in vm)) {

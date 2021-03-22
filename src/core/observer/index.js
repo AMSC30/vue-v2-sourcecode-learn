@@ -86,6 +86,8 @@ function copyAugment(target: Object, src: Object, keys: Array<string>) {
 
 // observe的本质是将一个对象类型的数据进行数据劫持，并添加__ob__属性
 export function observe(value: any, asRootData: ?boolean): Observer | void {
+    // 数据响应式条件
+    // 1.普通类型的值，返回、2.有ob属性，返回、3.shouldObserve为false，返回
     // 如果value不是一个对象或者是一个VNode对象，直接返回
     if (!isObject(value) || value instanceof VNode) {
         return
