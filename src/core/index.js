@@ -3,6 +3,11 @@ import { initGlobalAPI } from "./global-api/index";
 import { isServerRendering } from "core/util/env";
 import { FunctionalRenderContext } from "core/vdom/create-functional-component";
 
+/**
+ * 1.默认options
+ * 2.全局方法
+ * 3.全局资源方法
+ */
 initGlobalAPI(Vue);
 
 // vue运行环境判断
@@ -23,5 +28,4 @@ Object.defineProperty(Vue, "FunctionalRenderContext", {
 });
 
 Vue.version = "__VERSION__";
-
 export default Vue;
