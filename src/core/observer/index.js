@@ -168,24 +168,28 @@ export function defineReactive(
 }
 
 export function set(target, key, val) {
+    // 数组
     if (Array.isArray(target) && isValidArrayIndex(key)) {
         target.length = Math.max(target.length, key);
         target.splice(key, 1, val);
         return val;
     }
 
-    if (key in target && !(key in Object.prototype)) {
+    // 已有属性
+    if (Object.prototype.hasOwnProperty.call(target, key)) {
         target[key] = val;
         return val;
     }
 
     const ob = target.__ob__;
 
+    // 非响应式对象
     if (!ob) {
         target[key] = val;
         return val;
     }
 
+    // 响应式处理
     defineReactive(ob.value, key, val);
 
     ob.dep.notify();
@@ -193,7 +197,8 @@ export function set(target, key, val) {
     return val;
 }
 
-export function del(target: Array<any> | Object, key: any) {
+export function del(target, key) {
+    // 数组
     if (Array.isArray(target) && isValidArrayIndex(key)) {
         target.splice(key, 1);
         return;
