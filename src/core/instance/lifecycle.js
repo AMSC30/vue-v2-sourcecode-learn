@@ -40,6 +40,7 @@ export function initLifecycle(vm: Component) {
         parent.$children.push(vm);
     }
 
+    // 组件父子关系
     vm.$parent = parent;
     vm.$root = parent ? parent.$root : vm;
 

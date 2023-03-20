@@ -4,22 +4,19 @@ import { hasOwn } from "shared/util";
 import { warn, hasSymbol } from "../util/index";
 import { defineReactive, toggleObserving } from "../observer/index";
 
-export function initProvide(vm: Component) {
+export function initProvide(vm) {
     const provide = vm.$options.provide;
+
     if (provide) {
-        // provide可以为一个返回对象的函数形式
         vm._provided =
             typeof provide === "function" ? provide.call(vm) : provide;
     }
 }
 
-export function initInjections(vm: Component) {
-    // 根据inject选项，从当前实例出发，获取inject对象
+export function initInjections(vm) {
     const result = resolveInject(vm.$options.inject, vm);
 
-    // 如果存在inject，做响应式处理
     if (result) {
-        // 只对顶层属性做响应式处理
         toggleObserving(false);
 
         Object.keys(result).forEach((key) => {
@@ -30,10 +27,9 @@ export function initInjections(vm: Component) {
     }
 }
 
-export function resolveInject(inject: any, vm: Component): ?Object {
+export function resolveInject(inject, vm) {
     if (!inject) return;
 
-    // 创建一个空实例
     const result = Object.create(null);
     const keys = hasSymbol ? Reflect.ownKeys(inject) : Object.keys(inject);
 

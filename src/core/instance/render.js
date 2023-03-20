@@ -16,12 +16,12 @@ import VNode, { createEmptyVNode } from "../vdom/vnode";
 
 import { isUpdatingChildComponent } from "./lifecycle";
 
-export function initRender(vm: Component) {
-    vm._vnode = null; // the root of the child tree
-    vm._staticTrees = null; // v-once cached trees
+export function initRender(vm) {
+    vm._vnode = null;
+    vm._staticTrees = null;
 
     const options = vm.$options;
-    const parentVnode = (vm.$vnode = options._parentVnode); // the placeholder node in parent tree
+    const parentVnode = (vm.$vnode = options._parentVnode);
     const renderContext = parentVnode && parentVnode.context;
 
     vm.$slots = resolveSlots(options._renderChildren, renderContext);

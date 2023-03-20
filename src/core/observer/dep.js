@@ -40,7 +40,7 @@ export default class Dep {
 Dep.target = null;
 const targetStack = [];
 
-export function pushTarget(target: ?Watcher) {
+export function pushTarget(target) {
     targetStack.push(target);
     Dep.target = target;
 }

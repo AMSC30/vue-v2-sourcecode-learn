@@ -97,14 +97,7 @@ export function observe(value: any, asRootData: ?boolean): Observer | void {
     return ob;
 }
 
-// 重写对象的getter和setter
-export function defineReactive(
-    obj: Object,
-    key: string,
-    val: any,
-    customSetter?: ?Function,
-    shallow?: boolean
-) {
+export function defineReactive(obj, key, val, customSetter, shallow) {
     // 创建一个依赖收集器 这里是一个闭包变量，属性的getter和setter函数可以访问到
     const dep = new Dep();
 

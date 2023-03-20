@@ -35,7 +35,7 @@ const sharedPropertyDefinition = {
     set: noop,
 };
 
-export function proxy(target: Object, sourceKey: string, key: string) {
+export function proxy(target, sourceKey, key) {
     sharedPropertyDefinition.get = function proxyGetter() {
         return this[sourceKey][key];
     };
@@ -45,45 +45,30 @@ export function proxy(target: Object, sourceKey: string, key: string) {
     Object.defineProperty(target, key, sharedPropertyDefinition);
 }
 
-export function initState(vm: Component) {
-    // watcher储存池
+export function initState(vm) {
     vm._watchers = [];
 
     const opts = vm.$options;
 
-    // 初始化vue实例的_props属性值，并将属性的访问代理到vue实例上面
-    if (opts.props) initProps(vm, opts.props);
+    opts.props && initProps(vm, opts.props);
 
-    // 校验命名冲突和值类型，将方法挂载到vue实例上面
-    if (opts.methods) initMethods(vm, opts.methods);
+    opts.methods && initMethods(vm, opts.methods);
 
-    if (opts.data) {
-        // 属性名校验、访问代理实现、数据响应式处理
-        initData(vm);
-    } else {
-        observe((vm._data = {}), true);
-    }
+    opts.data ? initData(vm) : observe((vm._data = {}), true);
 
-    // 本质上根据每个属性生成一个watcher保存在vue实例的_computedWatchers中，
-    // 再创建对象属性的访问描述，同时将每个属性挂载到vue实例上
-    if (opts.computed) initComputed(vm, opts.computed);
+    opts.computed && initComputed(vm, opts.computed);
 
     if (opts.watch && opts.watch !== nativeWatch) {
         initWatch(vm, opts.watch);
     }
 }
 
-function initProps(vm: Component, propsOptions: Object) {
-    // 从父组件上获取到值，并生成_props对象，进行响应式处理，并对该属性进行代理，实现可以通过vue实例属性访问
+function initProps(vm, propsOptions) {
     const propsData = vm.$options.propsData || {};
     const keys = (vm.$options._propKeys = []);
     const props = (vm._props = {});
 
-    const isRoot = !vm.$parent;
-
-    if (!isRoot) {
-        toggleObserving(false);
-    }
+    vm.$parent && toggleObserving(false);
 
     for (const key in propsOptions) {
         keys.push(key);
@@ -101,7 +86,6 @@ function initProps(vm: Component, propsOptions: Object) {
 
 function initData(vm: Component) {
     let data = vm.$options.data;
-    // 在vue实例上挂载_data属性
     data = vm._data =
         typeof data === "function" ? getData(data, vm) : data || {};
 
@@ -121,7 +105,6 @@ function initData(vm: Component) {
     const methods = vm.$options.methods;
     let i = keys.length;
 
-    // data属性名进行校验，不能再props和methods出现， methods的属性名不能在props中出现
     while (i--) {
         const key = keys[i];
         if (process.env.NODE_ENV !== "production") {
@@ -144,12 +127,11 @@ function initData(vm: Component) {
             proxy(vm, `_data`, key);
         }
     }
-    // 数据响应式处理
+
     observe(data, true);
 }
 
-export function getData(data: Function, vm: Component): any {
-    // #7573 disable dep collection when invoking data getters
+export function getData(data, vm): any {
     pushTarget();
     try {
         return data.call(vm, vm);
@@ -163,8 +145,7 @@ export function getData(data: Function, vm: Component): any {
 
 const computedWatcherOptions = { lazy: true };
 
-function initComputed(vm: Component, computed: Object) {
-    // 初始化vue实例的_computedWatchers，是一个对象，对应每一个computed的watcher
+function initComputed(vm, computed) {
     const watchers = (vm._computedWatchers = Object.create(null));
     const isSSR = isServerRendering();
 
@@ -179,7 +160,6 @@ function initComputed(vm: Component, computed: Object) {
         }
 
         if (!isSSR) {
-            // 每一个计算属性对应一个watcher，放在_computedWatchers中
             watchers[key] = new Watcher(
                 vm,
                 getter || noop,
@@ -206,11 +186,7 @@ function initComputed(vm: Component, computed: Object) {
     }
 }
 
-export function defineComputed(
-    target: any,
-    key: string,
-    userDef: Object | Function
-) {
+export function defineComputed(target, key, userDef) {
     const shouldCache = !isServerRendering();
     if (typeof userDef === "function") {
         sharedPropertyDefinition.get = shouldCache
@@ -260,7 +236,7 @@ function createGetterInvoker(fn) {
     };
 }
 
-function initMethods(vm: Component, methods: Object) {
+function initMethods(vm, methods) {
     const props = vm.$options.props;
     for (const key in methods) {
         if (process.env.NODE_ENV !== "production") {
@@ -285,13 +261,13 @@ function initMethods(vm: Component, methods: Object) {
                 );
             }
         }
-        // 将方法挂载到vue实例上，如果methods各个属性值不是一个函数返回一个空的函数，否则将函数的this绑定到vue实例上
+
         vm[key] =
             typeof methods[key] !== "function" ? noop : bind(methods[key], vm);
     }
 }
 
-function initWatch(vm: Component, watch: Object) {
+function initWatch(vm, watch) {
     // 遍历定义得watch选项
     for (const key in watch) {
         // 拿到每个选项值
@@ -307,12 +283,7 @@ function initWatch(vm: Component, watch: Object) {
     }
 }
 
-function createWatcher(
-    vm: Component,
-    expOrFn: string | Function,
-    handler: any,
-    options?: Object
-) {
+function createWatcher(vm, expOrFn, handler, options) {
     // 序列化传过来的参数，统一为exp、handler、options
     if (isPlainObject(handler)) {
         options = handler;

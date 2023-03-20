@@ -12,11 +12,10 @@ import { updateListeners } from "../vdom/helpers/index";
 export function initEvents(vm: Component) {
     vm._events = Object.create(null);
     vm._hasHookEvent = false;
-    // init parent attached events
+
+    // 组件自定义事件
     const listeners = vm.$options._parentListeners;
-    if (listeners) {
-        updateComponentListeners(vm, listeners);
-    }
+    listeners && updateComponentListeners(vm, listeners);
 }
 
 let target: any;
@@ -39,11 +38,7 @@ function createOnceHandler(event, fn) {
     };
 }
 
-export function updateComponentListeners(
-    vm: Component,
-    listeners: Object,
-    oldListeners: ?Object
-) {
+export function updateComponentListeners(vm, listeners, oldListeners) {
     target = vm;
     updateListeners(
         listeners,
