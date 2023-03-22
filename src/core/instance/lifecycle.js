@@ -131,11 +131,7 @@ export function lifecycleMixin(Vue: Class<Component>) {
     };
 }
 
-export function mountComponent(
-    vm: Component,
-    el: ?Element,
-    hydrating?: boolean
-): Component {
+export function mountComponent(vm, el, hydrating) {
     vm.$el = el;
 
     !vm.$options.render && (vm.$options.render = createEmptyVNode);
@@ -157,12 +153,10 @@ export function mountComponent(
                 }
             },
         },
-        true /* isRenderWatcher */
+        true
     );
     hydrating = false;
 
-    // manually mounted instance, call mounted on self
-    // mounted is called for render-created child components in its inserted hook
     if (vm.$vnode == null) {
         vm._isMounted = true;
         callHook(vm, "mounted");
