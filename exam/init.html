@@ -7,20 +7,51 @@
         <title>Document</title>
     </head>
     <body>
-        <script src="../dist//vue.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/vue@2.7.14/dist/vue.js"></script>
         <div id="app">
-            <p>{{message}}</p>
+            <p @click="handleClick">{{message}}</p>
+            <child></child>
         </div>
         <script>
             const options = {
-                el: '#app',
+                el: "#app",
+                components: {
+                    child: {
+                        inject: ["info"],
+                        template:
+                            "<div @click='handleClick'>{{info.name}}</div>",
+                        methods: {
+                            handleClick() {
+                                this.info = { name: "child" };
+                            },
+                        },
+                        beforeUpdate() {
+                            console.log(111);
+                        },
+                    },
+                },
+
                 data() {
                     return {
-                        message: 'hello'
-                    }
-                }
-            }
-            const app = new Vue(options)
+                        message: "hello",
+                        info: {
+                            name: "tom",
+                        },
+                    };
+                },
+                provide() {
+                    return {
+                        info: this.info,
+                    };
+                },
+                methods: {
+                    handleClick() {
+                        this.info.name = "jack";
+                        console.log(this);
+                    },
+                },
+            };
+            const app = new Vue(options);
         </script>
     </body>
 </html>

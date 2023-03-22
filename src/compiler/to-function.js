@@ -1,114 +1,120 @@
 /* @flow */
 
-import { noop, extend } from 'shared/util'
-import { warn as baseWarn, tip } from 'core/util/debug'
-import { generateCodeFrame } from './codeframe'
+import { noop, extend } from "shared/util";
+import { warn as baseWarn, tip } from "core/util/debug";
+import { generateCodeFrame } from "./codeframe";
+
+import { parse } from "./parser/index";
+import { optimize } from "./optimizer";
+import { generate } from "./codegen/index";
 
 type CompiledFunctionResult = {
-  render: Function;
-  staticRenderFns: Array<Function>;
+    render: Function,
+    staticRenderFns: Array<Function>,
 };
 
-function createFunction (code, errors) {
-  try {
-    return new Function(code)
-  } catch (err) {
-    errors.push({ err, code })
-    return noop
-  }
+function createFunction(code, errors) {
+    try {
+        return new Function(code);
+    } catch (err) {
+        errors.push({ err, code });
+        return noop;
+    }
 }
+function compile(template, options) {
+    const finalOptions = Object.create(baseOptions);
+    const errors = [];
+    const tips = [];
 
-export function createCompileToFunctionFn (compile: Function): Function {
-  const cache = Object.create(null)
+    let warn = (msg, range, tip) => {
+        (tip ? tips : errors).push(msg);
+    };
 
-  return function compileToFunctions (
-    template: string,
-    options?: CompilerOptions,
-    vm?: Component
-  ): CompiledFunctionResult {
-    options = extend({}, options)
-    const warn = options.warn || baseWarn
-    delete options.warn
+    if (options) {
+        if (
+            process.env.NODE_ENV !== "production" &&
+            options.outputSourceRange
+        ) {
+            // $flow-disable-line
+            const leadingSpaceLength = template.match(/^\s*/)[0].length;
 
-    /* istanbul ignore if */
-    if (process.env.NODE_ENV !== 'production') {
-      // detect possible CSP restriction
-      try {
-        new Function('return 1')
-      } catch (e) {
-        if (e.toString().match(/unsafe-eval|CSP/)) {
-          warn(
-            'It seems you are using the standalone build of Vue.js in an ' +
-            'environment with Content Security Policy that prohibits unsafe-eval. ' +
-            'The template compiler cannot work in this environment. Consider ' +
-            'relaxing the policy to allow unsafe-eval or pre-compiling your ' +
-            'templates into render functions.'
-          )
+            warn = (msg, range, tip) => {
+                const data: WarningMessage = { msg };
+                if (range) {
+                    if (range.start != null) {
+                        data.start = range.start + leadingSpaceLength;
+                    }
+                    if (range.end != null) {
+                        data.end = range.end + leadingSpaceLength;
+                    }
+                }
+                (tip ? tips : errors).push(data);
+            };
         }
-      }
-    }
-
-    // check cache
-    const key = options.delimiters
-      ? String(options.delimiters) + template
-      : template
-    if (cache[key]) {
-      return cache[key]
-    }
-
-    // compile
-    const compiled = compile(template, options)
-
-    // check compilation errors/tips
-    if (process.env.NODE_ENV !== 'production') {
-      if (compiled.errors && compiled.errors.length) {
-        if (options.outputSourceRange) {
-          compiled.errors.forEach(e => {
-            warn(
-              `Error compiling template:\n\n${e.msg}\n\n` +
-              generateCodeFrame(template, e.start, e.end),
-              vm
-            )
-          })
-        } else {
-          warn(
-            `Error compiling template:\n\n${template}\n\n` +
-            compiled.errors.map(e => `- ${e}`).join('\n') + '\n',
-            vm
-          )
+        // merge custom modules
+        if (options.modules) {
+            finalOptions.modules = (baseOptions.modules || []).concat(
+                options.modules
+            );
         }
-      }
-      if (compiled.tips && compiled.tips.length) {
-        if (options.outputSourceRange) {
-          compiled.tips.forEach(e => tip(e.msg, vm))
-        } else {
-          compiled.tips.forEach(msg => tip(msg, vm))
+        // merge custom directives
+        if (options.directives) {
+            finalOptions.directives = extend(
+                Object.create(baseOptions.directives || null),
+                options.directives
+            );
         }
-      }
+        // copy other options
+        for (const key in options) {
+            if (key !== "modules" && key !== "directives") {
+                finalOptions[key] = options[key];
+            }
+        }
     }
 
-    // turn code into functions
-    const res = {}
-    const fnGenErrors = []
-    res.render = createFunction(compiled.render, fnGenErrors)
-    res.staticRenderFns = compiled.staticRenderFns.map(code => {
-      return createFunction(code, fnGenErrors)
-    })
+    finalOptions.warn = warn;
 
-    // check function generation errors.
-    // this should only happen if there is a bug in the compiler itself.
-    // mostly for codegen development use
-    /* istanbul ignore if */
-    if (process.env.NODE_ENV !== 'production') {
-      if ((!compiled.errors || !compiled.errors.length) && fnGenErrors.length) {
-        warn(
-          `Failed to generate render function:\n\n` +
-          fnGenErrors.map(({ err, code }) => `${err.toString()} in\n\n${code}\n`).join('\n'),
-          vm
-        )
-      }
+    const compiled = baseCompile(template.trim(), finalOptions);
+    if (process.env.NODE_ENV !== "production") {
+        detectErrors(compiled.ast, warn);
     }
+    compiled.errors = errors;
+    compiled.tips = tips;
+    return compiled;
+}
+export function createCompileToFunctionFn(compile) {
+    const cache = Object.create(null);
 
-    return (cache[key] = res)
-  }
+    return function compileToFunctions(template, options, vm) {
+        options = extend({}, options);
+        const warn = options.warn || baseWarn;
+        delete options.warn;
+
+        const key = options.delimiters
+            ? String(options.delimiters) + template
+            : template;
+        if (cache[key]) {
+            return cache[key];
+        }
+
+        const ast = parse(template.trim(), options);
+        if (options.optimize !== false) {
+            optimize(ast, options);
+        }
+        const code = generate(ast, options);
+        const compiled = {
+            ast,
+            render: code.render,
+            staticRenderFns: code.staticRenderFns,
+        };
+
+        const res = {};
+        const fnGenErrors = [];
+        res.render = createFunction(compiled.render, fnGenErrors);
+        res.staticRenderFns = compiled.staticRenderFns.map((code) => {
+            return createFunction(code, fnGenErrors);
+        });
+
+        return (cache[key] = res);
+    };
 }

@@ -40,11 +40,9 @@ export function initMixin(Vue) {
         // 初始化渲染相关
         initRender(vm);
 
-        // 至此，实例的选项序列化完成、选项合并完成、组件关系及相关渲染更新方法赋值完成
         callHook(vm, "beforeCreate");
 
         // 开始初始化数据
-
         initInjections(vm);
 
         // 初始化props、methods、data、computed、watch

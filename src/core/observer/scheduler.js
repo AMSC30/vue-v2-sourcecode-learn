@@ -99,7 +99,7 @@ function callActivatedHooks(queue) {
     }
 }
 
-export function queueWatcher(watcher: Watcher) {
+export function queueWatcher(watcher) {
     // 将watcher放入队列当中
     const id = watcher.id;
     if (has[id] == null) {

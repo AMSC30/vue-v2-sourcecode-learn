@@ -33,42 +33,21 @@ export function initRender(vm) {
 
     const parentData = parentVnode && parentVnode.data;
 
-    if (process.env.NODE_ENV !== "production") {
-        defineReactive(
-            vm,
-            "$attrs",
-            (parentData && parentData.attrs) || emptyObject,
-            () => {
-                !isUpdatingChildComponent && warn(`$attrs is readonly.`, vm);
-            },
-            true
-        );
-        defineReactive(
-            vm,
-            "$listeners",
-            options._parentListeners || emptyObject,
-            () => {
-                !isUpdatingChildComponent &&
-                    warn(`$listeners is readonly.`, vm);
-            },
-            true
-        );
-    } else {
-        defineReactive(
-            vm,
-            "$attrs",
-            (parentData && parentData.attrs) || emptyObject,
-            null,
-            true
-        );
-        defineReactive(
-            vm,
-            "$listeners",
-            options._parentListeners || emptyObject,
-            null,
-            true
-        );
-    }
+    defineReactive(
+        vm,
+        "$attrs",
+        (parentData && parentData.attrs) || emptyObject,
+        null,
+        true
+    );
+
+    defineReactive(
+        vm,
+        "$listeners",
+        options._parentListeners || emptyObject,
+        null,
+        true
+    );
 }
 
 export let currentRenderingInstance: Component | null = null;

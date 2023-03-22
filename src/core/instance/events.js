@@ -9,7 +9,7 @@ import {
 } from "../util/index";
 import { updateListeners } from "../vdom/helpers/index";
 
-export function initEvents(vm: Component) {
+export function initEvents(vm) {
     vm._events = Object.create(null);
     vm._hasHookEvent = false;
 

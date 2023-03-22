@@ -187,20 +187,10 @@ function initComputed(vm, computed) {
 }
 
 export function defineComputed(target, key, userDef) {
-    const shouldCache = !isServerRendering();
-    if (typeof userDef === "function") {
-        sharedPropertyDefinition.get = shouldCache
-            ? createComputedGetter(key)
-            : createGetterInvoker(userDef);
-        sharedPropertyDefinition.set = noop;
-    } else {
-        sharedPropertyDefinition.get = userDef.get
-            ? shouldCache && userDef.cache !== false
-                ? createComputedGetter(key)
-                : createGetterInvoker(userDef.get)
-            : noop;
-        sharedPropertyDefinition.set = userDef.set || noop;
-    }
+    sharedPropertyDefinition.get = createComputedGetter(key);
+    sharedPropertyDefinition.set =
+        typeof userDef === "function" ? userDef.set || noop : noop;
+
     if (
         process.env.NODE_ENV !== "production" &&
         sharedPropertyDefinition.set === noop
@@ -219,12 +209,8 @@ function createComputedGetter(key) {
     return function computedGetter() {
         const watcher = this._computedWatchers && this._computedWatchers[key];
         if (watcher) {
-            if (watcher.dirty) {
-                watcher.evaluate();
-            }
-            if (Dep.target) {
-                watcher.depend();
-            }
+            watcher.dirty && watcher.evaluate();
+            Dep.target && watcher.depend();
             return watcher.value;
         }
     };
@@ -268,11 +254,8 @@ function initMethods(vm, methods) {
 }
 
 function initWatch(vm, watch) {
-    // 遍历定义得watch选项
     for (const key in watch) {
-        // 拿到每个选项值
         const handler = watch[key];
-        // 如果watch是一个数组，为每一项创建一个watcher并放入vue实例的_watchers中
         if (Array.isArray(handler)) {
             for (let i = 0; i < handler.length; i++) {
                 createWatcher(vm, key, handler[i]);
@@ -284,7 +267,6 @@ function initWatch(vm, watch) {
 }
 
 function createWatcher(vm, expOrFn, handler, options) {
-    // 序列化传过来的参数，统一为exp、handler、options
     if (isPlainObject(handler)) {
         options = handler;
         handler = handler.handler;
@@ -293,19 +275,16 @@ function createWatcher(vm, expOrFn, handler, options) {
     if (typeof handler === "string") {
         handler = vm[handler];
     }
-    // 调用$watch方法
     return vm.$watch(expOrFn, handler, options);
 }
 
 export function stateMixin(Vue: Class<Component>) {
-    // 访问实例的this.$data返回实例的_data属性，_data是在init中赋值的
     Object.defineProperty(Vue.prototype, "$data", {
         get() {
             return this._data;
         },
     });
 
-    // 访问实例的this.$props返回实例的_prop属性,_props是在init中赋值的
     Object.defineProperty(Vue.prototype, "$props", {
         get() {
             return this._props;

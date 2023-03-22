@@ -24,13 +24,7 @@ let uid = 0;
  * This is used for both the $watch() api and directives.
  */
 export default class Watcher {
-    constructor(
-        vm: Component,
-        expOrFn: string | Function,
-        cb: Function,
-        options?: ?Object,
-        isRenderWatcher?: boolean
-    ) {
+    constructor(vm, expOrFn, cb, options, isRenderWatcher) {
         this.vm = vm;
 
         if (isRenderWatcher) {
@@ -98,7 +92,7 @@ export default class Watcher {
         return value;
     }
 
-    addDep(dep: Dep) {
+    addDep(dep) {
         const id = dep.id;
         if (!this.newDepIds.has(id)) {
             // 如果在新的收集器合集中没有当前dep，将这个dep放进新的合集中
