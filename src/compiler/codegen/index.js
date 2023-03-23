@@ -15,16 +15,6 @@ type DirectiveFunction = (
 ) => boolean;
 
 export class CodegenState {
-    options: CompilerOptions;
-    warn: Function;
-    transforms: Array<TransformFunction>;
-    dataGenFns: Array<DataGenFunction>;
-    directives: { [key: string]: DirectiveFunction };
-    maybeComponent: (el: ASTElement) => boolean;
-    onceId: number;
-    staticRenderFns: Array<string>;
-    pre: boolean;
-
     constructor(options: CompilerOptions) {
         this.options = options;
         this.warn = options.warn || baseWarn;
@@ -35,8 +25,7 @@ export class CodegenState {
             options.directives
         );
         const isReservedTag = options.isReservedTag || no;
-        this.maybeComponent = (el: ASTElement) =>
-            !!el.component || !isReservedTag(el.tag);
+        this.maybeComponent = (el) => !!el.component || !isReservedTag(el.tag);
         this.onceId = 0;
         this.staticRenderFns = [];
         this.pre = false;
@@ -75,24 +64,18 @@ export function genElement(el, state) {
     } else if (el.tag === "slot") {
         return genSlot(el, state);
     } else {
-        let code;
-        if (el.component) {
-            code = genComponent(el.component, el, state);
-        } else {
-            let data;
-            if (!el.plain || (el.pre && state.maybeComponent(el))) {
-                data = genData(el, state);
-            }
+        let data = genData(el, state);
+        const children = el.inlineTemplate
+            ? null
+            : genChildren(el, state, true);
+        const tag = el.component ? el.component : el.tagName;
 
-            const children = el.inlineTemplate
-                ? null
-                : genChildren(el, state, true);
-            code = `_c('${el.tag}'${
-                data ? `,${data}` : "" // data
-            }${
-                children ? `,${children}` : "" // children
-            })`;
-        }
+        let code = `_c('${tag}'${
+            data ? `,${data}` : "" // data
+        }${
+            children ? `,${children}` : "" // children
+        })`;
+
         // module transforms
         for (let i = 0; i < state.transforms.length; i++) {
             code = state.transforms[i](el, code);
@@ -144,34 +127,22 @@ function genOnce(el, state) {
     }
 }
 
-export function genIf(
-    el: any,
-    state: CodegenState,
-    altGen?: Function,
-    altEmpty?: string
-): string {
+export function genIf(el, state, altGen, altEmpty) {
     el.ifProcessed = true; // avoid recursion
     return genIfConditions(el.ifConditions.slice(), state, altGen, altEmpty);
 }
 
-function genIfConditions(
-    conditions: ASTIfConditions,
-    state: CodegenState,
-    altGen?: Function,
-    altEmpty?: string
-): string {
+function genIfConditions(conditions, state, altGen, altEmpty) {
     if (!conditions.length) {
         return altEmpty || "_e()";
     }
 
     const condition = conditions.shift();
-    if (condition.exp) {
-        return `(${condition.exp})?${genTernaryExp(
-            condition.block
-        )}:${genIfConditions(conditions, state, altGen, altEmpty)}`;
-    } else {
-        return `${genTernaryExp(condition.block)}`;
-    }
+    return condition.exp
+        ? `(${condition.exp})?${genTernaryExp(
+              condition.block
+          )}:${genIfConditions(conditions, state, altGen, altEmpty)}`
+        : `${genTernaryExp(condition.block)}`;
 
     // v-if with v-once should generate code like (a)?_m(0):_m(1)
     function genTernaryExp(el) {
@@ -183,12 +154,7 @@ function genIfConditions(
     }
 }
 
-export function genFor(
-    el: any,
-    state: CodegenState,
-    altGen?: Function,
-    altHelper?: string
-): string {
+export function genFor(el, state, altGen, altHelper) {
     const exp = el.for;
     const alias = el.alias;
     const iterator1 = el.iterator1 ? `,${el.iterator1}` : "";
@@ -220,18 +186,36 @@ export function genFor(
 }
 
 export function genData(el, state) {
+    /**
+     * data:
+     * {
+     *  directives:[{name:"",value:"",expression:"",arg:"",modifiers:""}],
+     *  key: el.key
+     *  ref: el.ref
+     *  refInFor: true | false
+     *  pre: true | false
+     *  tag: el.tag
+     *  staticClass:el.staticClass
+     *  class: el.classBinding
+     *  staticStyle: el.staticStyle
+     *  style: el.styleBinding
+     *  attrs:{}
+     *  domProps:{}
+     *  on:{}
+     *  nativeOn:{}
+     *  slot: el.slotTarget
+     *  scopedSlots:[]
+     *  model:{value: el.model.value, expressions:el.model.expressions,callback: el.model.callback}
+     * }
+     */
     let data = "{";
 
-    // directives first.
-    // directives may mutate the el's other properties before they are generated.
     const dirs = genDirectives(el, state);
     if (dirs) data += dirs + ",";
 
-    // key
     if (el.key) {
         data += `key:${el.key},`;
     }
-    // ref
     if (el.ref) {
         data += `ref:${el.ref},`;
     }
@@ -246,10 +230,11 @@ export function genData(el, state) {
     if (el.component) {
         data += `tag:"${el.tag}",`;
     }
-    // module data generation functions
+    // 处理:class=  class=  :style=  style=
     for (let i = 0; i < state.dataGenFns.length; i++) {
         data += state.dataGenFns[i](el);
     }
+
     // attributes
     if (el.attrs) {
         data += `attrs:${genProps(el.attrs)},`;
@@ -294,37 +279,45 @@ export function genData(el, state) {
     }
     // v-bind data wrap
     if (el.wrapData) {
+        // `_b(${code},'${el.tag}',${dir.value},${
+        //     dir.modifiers && dir.modifiers.prop ? "true" : "false"
+        // }${dir.modifiers && dir.modifiers.sync ? ",true" : ""})`;
         data = el.wrapData(data);
     }
     // v-on data wrap
     if (el.wrapListeners) {
+        // `_g(${code},${dir.value})`
         data = el.wrapListeners(data);
     }
     return data;
 }
 
-function genDirectives(el: ASTElement, state: CodegenState): string | void {
+function genDirectives(el, state): string | void {
     const dirs = el.directives;
     if (!dirs) return;
+
     let res = "directives:[";
     let hasRuntime = false;
     let i, l, dir, needRuntime;
+
     for (i = 0, l = dirs.length; i < l; i++) {
         dir = dirs[i];
         needRuntime = true;
         const gen = state.directives[dir.name];
+
         if (gen) {
-            // compile-time directive that manipulates AST.
-            // returns true if it also needs a runtime counterpart.
             needRuntime = !!gen(el, dir, state.warn);
         }
+
         if (needRuntime) {
             hasRuntime = true;
-            res += `{name:"${dir.name}",rawName:"${dir.rawName}"${
+            res += `{
+                name:"${dir.name}",
+                rawName:"${dir.rawName}"${
                 dir.value
-                    ? `,value:(${dir.value}),expression:${JSON.stringify(
-                          dir.value
-                      )}`
+                    ? `,
+                value:(${dir.value}),
+                expression:${JSON.stringify(dir.value)}`
                     : ""
             }${
                 dir.arg
@@ -363,11 +356,7 @@ function genInlineTemplate(el: ASTElement, state: CodegenState): ?string {
     }
 }
 
-function genScopedSlots(
-    el: ASTElement,
-    slots: { [key: string]: ASTElement },
-    state: CodegenState
-): string {
+function genScopedSlots(el, slots, state) {
     // by default scoped slots are considered "stable", this allows child
     // components with only scoped slots to skip forced updates from parent.
     // but in some cases we have to bail-out of this optimization
@@ -473,32 +462,33 @@ function genScopedSlot(el: ASTElement, state: CodegenState): string {
 
 export function genChildren(el, state, checkSkip, altGenElement, altGenNode) {
     const children = el.children;
-    if (children.length) {
-        const el: any = children[0];
-        if (
-            children.length === 1 &&
-            el.for &&
-            el.tag !== "template" &&
-            el.tag !== "slot"
-        ) {
-            const normalizationType = checkSkip
-                ? state.maybeComponent(el)
-                    ? `,1`
-                    : `,0`
-                : ``;
-            return `${(altGenElement || genElement)(
-                el,
-                state
-            )}${normalizationType}`;
-        }
+
+    if (!children.length) return;
+
+    const el = children[0];
+    if (
+        children.length === 1 &&
+        el.for &&
+        el.tag !== "template" &&
+        el.tag !== "slot"
+    ) {
         const normalizationType = checkSkip
-            ? getNormalizationType(children, state.maybeComponent)
-            : 0;
-        const gen = altGenNode || genNode;
-        return `[${children.map((c) => gen(c, state)).join(",")}]${
-            normalizationType ? `,${normalizationType}` : ""
-        }`;
+            ? state.maybeComponent(el)
+                ? `,1`
+                : `,0`
+            : ``;
+        return `${(altGenElement || genElement)(
+            el,
+            state
+        )}${normalizationType}`;
     }
+    const normalizationType = checkSkip
+        ? getNormalizationType(children, state.maybeComponent)
+        : 0;
+    const gen = altGenNode || genNode;
+    return `[${children.map((c) => gen(c, state)).join(",")}]${
+        normalizationType ? `,${normalizationType}` : ""
+    }`;
 }
 
 // determine the normalization needed for the children array.
@@ -587,6 +577,7 @@ function genSlot(el, state) {
     if (bind) {
         res += `${attrs ? "" : ",null"},${bind}`;
     }
+    // "_t('slotName',children | null,attrs,bind)"
     return res + ")";
 }
 
@@ -598,14 +589,12 @@ function genComponent(componentName, el, state) {
     })`;
 }
 
-function genProps(props: Array<ASTAttr>): string {
+function genProps(props) {
     let staticProps = ``;
     let dynamicProps = ``;
     for (let i = 0; i < props.length; i++) {
         const prop = props[i];
-        const value = __WEEX__
-            ? generateValue(prop.value)
-            : transformSpecialNewlines(prop.value);
+        const value = transformSpecialNewlines(prop.value);
         if (prop.dynamic) {
             dynamicProps += `${prop.name},${value},`;
         } else {
