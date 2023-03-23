@@ -76,8 +76,7 @@ export function parse(template, options) {
     platformMustUseProp = options.mustUseProp || no;
     platformGetTagNamespace = options.getTagNamespace || no;
     const isReservedTag = options.isReservedTag || no;
-    maybeComponent = (el: ASTElement) =>
-        !!el.component || !isReservedTag(el.tag);
+    maybeComponent = (el) => !!el.component || !isReservedTag(el.tag);
 
     transforms = pluckModuleFunction(options.modules, "transformNode");
     preTransforms = pluckModuleFunction(options.modules, "preTransformNode");
@@ -102,10 +101,42 @@ export function parse(template, options) {
     }
 
     function closeElement(element) {
-        trimEndingWhitespace(element);
-        if (!inVPre && !element.processed) {
-            element = processElement(element, options);
+        if (!inPre) {
+            // 清空空白子节点
+            let lastNode;
+            while (
+                (lastNode = element.children[element.children.length - 1]) &&
+                lastNode.type === 3 &&
+                lastNode.text === " "
+            ) {
+                element.children.pop();
+            }
+
+            if (!element.processed) {
+                processKey(element); // element.key = exp
+
+                element.plain =
+                    !element.key &&
+                    !element.scopedSlots &&
+                    !element.attrsList.length;
+
+                processRef(element); // element.ref, element.refInFor
+
+                // element.slotTarget, element.slotTargetDynamic, element.slotScope
+                processSlotContent(element);
+
+                processSlotOutlet(element); // element.slotName
+
+                // element.component->componentIsExp, element['inline-template']
+                processComponent(element);
+                for (let i = 0; i < transforms.length; i++) {
+                    element = transforms[i](element, options) || element;
+                }
+
+                processAttrs(element);
+            }
         }
+
         // tree management
         if (!stack.length && element !== root) {
             // allow root elements with v-if, v-else-if and v-else
@@ -212,6 +243,7 @@ export function parse(template, options) {
             }
 
             let element = createASTElement(tag, attrs, currentParent);
+
             if (ns) {
                 element.ns = ns;
             }
@@ -267,12 +299,17 @@ export function parse(template, options) {
             if (platformIsPreTag(element.tag)) {
                 inPre = true;
             }
+
             if (inVPre) {
                 processRawAttrs(element);
             } else if (!element.processed) {
-                processFor(element); // el.alias, el.iterator, el.for
-                processIf(element); // el.if, el.else, el.elseif
-                processOnce(element); // el.once
+                // el.alias, el.iterator, el.for
+                processFor(element);
+                // el.if=exp, el.else=true, el.elseif=exp, el.ifConditions->[{exp}]
+                processIf(element);
+
+                // el.once=true
+                processOnce(element);
             }
 
             if (!root) {
@@ -329,6 +366,7 @@ export function parse(template, options) {
             ) {
                 return;
             }
+
             const children = currentParent.children;
             if (inPre || text.trim()) {
                 text = isTextTag(currentParent) ? text : decodeHTMLCached(text);
@@ -358,6 +396,17 @@ export function parse(template, options) {
                     text !== " " &&
                     (res = parseText(text, delimiters))
                 ) {
+                    /**
+                     * res:
+                     *
+                     * hello {{ name | translate}} !
+                     *
+                     * {
+                     *  expression:"hello"+"_s(translate(name))"+"!",
+                     *  tokens:["hello",{ @binding: "_s(translate(name))"},"!"]
+                     * }
+                     *
+                     * */
                     child = {
                         type: 2,
                         expression: res.expression,
@@ -429,19 +478,22 @@ function processRawAttrs(el) {
     }
 }
 
-export function processElement(element: ASTElement, options: CompilerOptions) {
-    processKey(element); // element.key=exp
+export function processElement(element, options) {
+    processKey(element); // element.key = exp
 
     element.plain =
         !element.key && !element.scopedSlots && !element.attrsList.length;
 
     processRef(element); // element.ref, element.refInFor
+
     processSlotContent(element); // element.slotTarget, element.slotTargetDynamic, element.slotScope
     processSlotOutlet(element); // element.slotName
+
     processComponent(element); // element.component, element['inline-template']
     for (let i = 0; i < transforms.length; i++) {
         element = transforms[i](element, options) || element;
     }
+
     processAttrs(element);
     return element;
 }
@@ -581,7 +633,7 @@ function findPrevElement(children: Array<any>): ASTElement | void {
     }
 }
 
-export function addIfCondition(el: ASTElement, condition: ASTIfCondition) {
+export function addIfCondition(el, condition) {
     if (!el.ifConditions) {
         el.ifConditions = [];
     }
@@ -758,6 +810,7 @@ function processComponent(el) {
 
 function processAttrs(el) {
     const list = el.attrsList;
+
     let i, l, name, rawName, value, modifiers, syncGen, isDynamic;
     for (i = 0, l = list.length; i < l; i++) {
         name = rawName = list[i].name;
@@ -768,38 +821,37 @@ function processAttrs(el) {
             // 处理name和修饰符
             el.hasBindings = true;
             modifiers = parseModifiers(name.replace(dirRE, ""));
+
             if (process.env.VBIND_PROP_SHORTHAND && propBindRE.test(name)) {
                 (modifiers || (modifiers = {})).prop = true;
                 name = `.` + name.slice(1).replace(modifierRE, "");
             } else if (modifiers) {
                 name = name.replace(modifierRE, "");
             }
+
             if (bindRE.test(name)) {
                 // v-bind / :
                 name = name.replace(bindRE, "");
                 value = parseFilters(value);
                 isDynamic = dynamicArgRE.test(name); // [name]
+
                 if (isDynamic) {
                     name = name.slice(1, -1);
                 }
-                if (
-                    process.env.NODE_ENV !== "production" &&
-                    value.trim().length === 0
-                ) {
-                    warn(
-                        `The value for a v-bind expression cannot be empty. Found in "v-bind:${name}"`
-                    );
-                }
+
                 if (modifiers) {
                     if (modifiers.prop && !isDynamic) {
                         name = camelize(name);
                         if (name === "innerHtml") name = "innerHTML";
                     }
+
                     if (modifiers.camel && !isDynamic) {
                         name = camelize(name);
                     }
+
                     if (modifiers.sync) {
                         syncGen = genAssignmentCode(value, `$event`);
+
                         if (!isDynamic) {
                             addHandler(
                                 el,
@@ -836,6 +888,7 @@ function processAttrs(el) {
                         }
                     }
                 }
+
                 if (
                     (modifiers && modifiers.prop) ||
                     (!el.component &&
@@ -891,7 +944,6 @@ function processAttrs(el) {
                 }
             }
         } else {
-            // literal attribute
             if (process.env.NODE_ENV !== "production") {
                 const res = parseText(value, delimiters);
                 if (res) {
@@ -905,8 +957,7 @@ function processAttrs(el) {
                 }
             }
             addAttr(el, name, JSON.stringify(value), list[i]);
-            // #6887 firefox doesn't update muted state if set via attribute
-            // even immediately after element creation
+
             if (
                 !el.component &&
                 name === "muted" &&

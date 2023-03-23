@@ -18,26 +18,14 @@ export function pluckModuleFunction<F: Function>(
     return modules ? modules.map((m) => m[key]).filter((_) => _) : [];
 }
 
-export function addProp(
-    el: ASTElement,
-    name: string,
-    value: string,
-    range?: Range,
-    dynamic?: boolean
-) {
+export function addProp(el, name, value, range, dynamic) {
     (el.props || (el.props = [])).push(
         rangeSetItem({ name, value, dynamic }, range)
     );
     el.plain = false;
 }
 
-export function addAttr(
-    el: ASTElement,
-    name: string,
-    value: any,
-    range?: Range,
-    dynamic?: boolean
-) {
+export function addAttr(el, name, value, range, dynamic) {
     const attrs = dynamic
         ? el.dynamicAttrs || (el.dynamicAttrs = [])
         : el.attrs || (el.attrs = []);
@@ -57,14 +45,14 @@ export function addRawAttr(
 }
 
 export function addDirective(
-    el: ASTElement,
-    name: string,
-    rawName: string,
-    value: string,
-    arg: ?string,
-    isDynamicArg: boolean,
-    modifiers: ?ASTModifiers,
-    range?: Range
+    el,
+    name,
+    rawName,
+    value,
+    arg,
+    isDynamicArg,
+    modifiers,
+    range
 ) {
     (el.directives || (el.directives = [])).push(
         rangeSetItem(
@@ -157,6 +145,7 @@ export function addHandler(
         { value: value.trim(), dynamic },
         range
     );
+
     if (modifiers !== emptyObject) {
         newHandler.modifiers = modifiers;
     }
@@ -176,7 +165,7 @@ export function addHandler(
     el.plain = false;
 }
 
-export function getRawBindingAttr(el: ASTElement, name: string) {
+export function getRawBindingAttr(el, name) {
     return (
         el.rawAttrsMap[":" + name] ||
         el.rawAttrsMap["v-bind:" + name] ||
@@ -184,14 +173,11 @@ export function getRawBindingAttr(el: ASTElement, name: string) {
     );
 }
 
-export function getBindingAttr(
-    el: ASTElement,
-    name: string,
-    getStatic?: boolean
-): ?string {
+export function getBindingAttr(el, name, getStatic) {
     const dynamicValue =
         getAndRemoveAttr(el, ":" + name) ||
         getAndRemoveAttr(el, "v-bind:" + name);
+
     if (dynamicValue != null) {
         return parseFilters(dynamicValue);
     } else if (getStatic !== false) {
@@ -234,7 +220,7 @@ export function getAndRemoveAttrByRegex(el, name) {
     }
 }
 
-function rangeSetItem(item: any, range?: { start?: number, end?: number }) {
+function rangeSetItem(item, range) {
     if (range) {
         if (range.start != null) {
             item.start = range.start;

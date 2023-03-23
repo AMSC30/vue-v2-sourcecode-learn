@@ -48,3 +48,12 @@ export function parseText(text, delimiters) {
         tokens: rawTokens,
     };
 }
+/**
+ * hello {{ name | translate}} !
+ *
+ * {
+ *  expression:"hello"+"_s(translate(name))"+"!",
+ *  tokens:["hello",{@binding:"_s(translate(name))"},"!"]
+ * }
+ *
+ * */

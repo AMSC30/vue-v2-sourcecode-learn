@@ -107,6 +107,7 @@ export function parseHTML(html, options) {
                 if (endTagMatch) {
                     const curIndex = index;
                     advance(endTagMatch[0].length);
+                    // 是否匹配stack中的最后一个，不是则看是否是自闭合标签
                     parseEndTag(endTagMatch[1], curIndex, index);
                     continue;
                 }
@@ -200,7 +201,6 @@ export function parseHTML(html, options) {
         }
     }
 
-    // Clean up any remaining tags
     parseEndTag();
 
     function parseStartTag() {
@@ -249,6 +249,8 @@ export function parseHTML(html, options) {
 
         const l = match.attrs.length;
         const attrs = new Array(l);
+
+        // attr:{name:string, value:string, start:number, end:number}
         for (let i = 0; i < l; i++) {
             const args = match.attrs[i];
             const value = args[3] || args[4] || args[5] || "";
