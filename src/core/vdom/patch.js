@@ -124,15 +124,11 @@ export function createPatchFunction(backend) {
         index
     ) {
         if (isDef(vnode.elm) && isDef(ownerArray)) {
-            // This vnode was used in a previous render!
-            // now it's used as a new node, overwriting its elm would cause
-            // potential patch errors down the road when it's used as an insertion
-            // reference node. Instead, we clone the node on-demand before creating
-            // associated DOM element for it.
             vnode = ownerArray[index] = cloneVNode(vnode);
         }
 
-        vnode.isRootInsert = !nested; // for transition enter check
+        vnode.isRootInsert = !nested;
+
         if (createComponent(vnode, insertedVnodeQueue, parentElm, refElm)) {
             return;
         }
@@ -140,6 +136,7 @@ export function createPatchFunction(backend) {
         const data = vnode.data;
         const children = vnode.children;
         const tag = vnode.tag;
+
         if (isDef(tag)) {
             if (process.env.NODE_ENV !== "production") {
                 if (data && data.pre) {
@@ -208,10 +205,7 @@ export function createPatchFunction(backend) {
             if (isDef((i = i.hook)) && isDef((i = i.init))) {
                 i(vnode, false /* hydrating */);
             }
-            // after calling the init hook, if the vnode is a child component
-            // it should've created a child instance and mounted it. the child
-            // component also has set the placeholder vnode's elm.
-            // in that case we can just return the element and be done.
+
             if (isDef(vnode.componentInstance)) {
                 initComponent(vnode, insertedVnodeQueue);
                 insert(parentElm, vnode.elm, refElm);
@@ -864,7 +858,6 @@ export function createPatchFunction(backend) {
         const insertedVnodeQueue = [];
 
         if (isUndef(oldVnode)) {
-            // empty mount (likely as component), create new root element
             isInitialPatch = true;
             createElm(vnode, insertedVnodeQueue);
         } else {

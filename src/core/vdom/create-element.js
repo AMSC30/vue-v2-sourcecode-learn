@@ -46,7 +46,7 @@ export function _createElement(
     children,
     normalizationType
 ) {
-    if (isDef(data) && isDef((data: any).__ob__)) {
+    if (isDef(data) && isDef(data.__ob__)) {
         process.env.NODE_ENV !== "production" &&
             warn(
                 `Avoid using observed data object as vnode data: ${JSON.stringify(

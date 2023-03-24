@@ -28,14 +28,13 @@ import {
 
 // inline hooks to be invoked on component VNodes during patch
 const componentVNodeHooks = {
-    init(vnode: VNodeWithData, hydrating: boolean): ?boolean {
+    init(vnode, hydrating) {
         if (
             vnode.componentInstance &&
             !vnode.componentInstance._isDestroyed &&
             vnode.data.keepAlive
         ) {
-            // kept-alive components, treat as a patch
-            const mountedNode: any = vnode; // work around flow
+            const mountedNode = vnode;
             componentVNodeHooks.prepatch(mountedNode, mountedNode);
         } else {
             const child = (vnode.componentInstance =
@@ -44,7 +43,7 @@ const componentVNodeHooks = {
         }
     },
 
-    prepatch(oldVnode: MountedComponentVNode, vnode: MountedComponentVNode) {
+    prepatch(oldVnode, vnode) {
         const options = vnode.componentOptions;
         const child = (vnode.componentInstance = oldVnode.componentInstance);
         updateChildComponent(
@@ -76,13 +75,13 @@ const componentVNodeHooks = {
         }
     },
 
-    destroy(vnode: MountedComponentVNode) {
+    destroy(vnode) {
         const { componentInstance } = vnode;
         if (!componentInstance._isDestroyed) {
             if (!vnode.data.keepAlive) {
                 componentInstance.$destroy();
             } else {
-                deactivateChildComponent(componentInstance, true /* direct */);
+                deactivateChildComponent(componentInstance, true);
             }
         }
     },
@@ -91,27 +90,12 @@ const componentVNodeHooks = {
 const hooksToMerge = Object.keys(componentVNodeHooks);
 
 export function createComponent(Ctor, data, context, children, tag) {
-    if (isUndef(Ctor)) {
-        return;
-    }
-
     const baseCtor = context.$options._base;
 
-    // plain options object: turn it into a constructor
     if (isObject(Ctor)) {
         Ctor = baseCtor.extend(Ctor);
     }
 
-    // if at this stage it's not a constructor or an async component factory,
-    // reject.
-    if (typeof Ctor !== "function") {
-        if (process.env.NODE_ENV !== "production") {
-            warn(`Invalid Component definition: ${String(Ctor)}`, context);
-        }
-        return;
-    }
-
-    // async component
     let asyncFactory;
     if (isUndef(Ctor.cid)) {
         asyncFactory = Ctor;
@@ -132,15 +116,15 @@ export function createComponent(Ctor, data, context, children, tag) {
 
     data = data || {};
 
+    // 合并各层级options
     resolveConstructorOptions(Ctor);
 
-    if (isDef(data.model)) {
-        transformModel(Ctor.options, data);
-    }
+    // 处理组件上的v-model
+    isDef(data.model) && transformModel(Ctor.options, data);
 
     const propsData = extractPropsFromVNodeData(data, Ctor, tag);
 
-    // functional component
+    // 函数式组件
     if (isTrue(Ctor.options.functional)) {
         return createFunctionalComponent(
             Ctor,
@@ -156,10 +140,6 @@ export function createComponent(Ctor, data, context, children, tag) {
     data.on = data.nativeOn;
 
     if (isTrue(Ctor.options.abstract)) {
-        // abstract components do not keep anything
-        // other than props & listeners & slot
-
-        // work around flow
         const slot = data.slot;
         data = {};
         if (slot) {
@@ -183,17 +163,10 @@ export function createComponent(Ctor, data, context, children, tag) {
         asyncFactory
     );
 
-    if (__WEEX__ && isRecyclableComponent(vnode)) {
-        return renderRecyclableComponentTemplate(vnode);
-    }
-
     return vnode;
 }
 
-export function createComponentInstanceForVnode(
-    vnode: any, // we know it's MountedComponentVNode but flow doesn't
-    parent: any // activeInstance in lifecycle state
-): Component {
+export function createComponentInstanceForVnode(vnode, parent) {
     const options: InternalComponentOptions = {
         _isComponent: true,
         _parentVnode: vnode,
@@ -208,7 +181,7 @@ export function createComponentInstanceForVnode(
     return new vnode.componentOptions.Ctor(options);
 }
 
-function installComponentHooks(data: VNodeData) {
+function installComponentHooks(data) {
     const hooks = data.hook || (data.hook = {});
     for (let i = 0; i < hooksToMerge.length; i++) {
         const key = hooksToMerge[i];
@@ -232,7 +205,7 @@ function mergeHook(f1: any, f2: any): Function {
 
 // transform component v-model info (value and callback) into
 // prop and event handler respectively.
-function transformModel(options, data: any) {
+function transformModel(options, data) {
     // prop,value,event,callback
     const prop = (options.model && options.model.prop) || "value";
     const event = (options.model && options.model.event) || "input";

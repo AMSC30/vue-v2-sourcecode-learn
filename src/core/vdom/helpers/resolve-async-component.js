@@ -88,10 +88,8 @@ export function resolveAsyncComponent(factory, baseCtor) {
         };
 
         const resolve = once((res: Object | Class<Component>) => {
-            // cache resolved
             factory.resolved = ensureCtor(res, baseCtor);
-            // invoke callbacks only if this is not a synchronous resolve
-            // (async resolves are shimmed as synchronous during SSR)
+
             if (!sync) {
                 forceRender(true);
             } else {

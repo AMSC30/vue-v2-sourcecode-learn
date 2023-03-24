@@ -55,7 +55,7 @@ export function initLifecycle(vm: Component) {
     vm._isBeingDestroyed = false;
 }
 
-export function lifecycleMixin(Vue: Class<Component>) {
+export function lifecycleMixin(Vue) {
     Vue.prototype._update = function (vnode, hydrating) {
         const vm = this;
         const prevEl = vm.$el;
