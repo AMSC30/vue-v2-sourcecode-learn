@@ -137,7 +137,6 @@ export function parse(template, options) {
             }
         }
 
-        // tree management
         if (!stack.length && element !== root) {
             // allow root elements with v-if, v-else-if and v-else
             if (root.if && (element.elseif || element.else)) {
@@ -157,6 +156,8 @@ export function parse(template, options) {
                 );
             }
         }
+
+        // not script tag or style tag
         if (currentParent && !element.forbidden) {
             if (element.elseif || element.else) {
                 processIfConditions(element, currentParent);
@@ -176,7 +177,8 @@ export function parse(template, options) {
 
         // final children cleanup
         // filter out scoped slots
-        element.children = element.children.filter((c) => !(c: any).slotScope);
+        element.children = element.children.filter((c) => !c.slotScope);
+
         // remove trailing whitespace node again
         trimEndingWhitespace(element);
 
@@ -743,6 +745,19 @@ function processSlotContent(el) {
                     }
                 }
                 // add the component's children to its default slot
+                /**
+                 * el:
+                 * {
+                 *   scopedSlots:{
+                 *   name:{
+                 *      tag:"template",
+                 *      children:[],
+                 *      parent:el,
+                 * }
+                 *
+                 *  }
+                 * }
+                 * */
                 const slots = el.scopedSlots || (el.scopedSlots = {});
                 const { name, dynamic } = getSlotName(slotBinding);
                 const slotContainer = (slots[name] = createASTElement(
@@ -752,7 +767,7 @@ function processSlotContent(el) {
                 ));
                 slotContainer.slotTarget = name;
                 slotContainer.slotTargetDynamic = dynamic;
-                slotContainer.children = el.children.filter((c: any) => {
+                slotContainer.children = el.children.filter((c) => {
                     if (!c.slotScope) {
                         c.parent = slotContainer;
                         return true;
@@ -809,6 +824,9 @@ function processComponent(el) {
 }
 
 function processAttrs(el) {
+    // attrs / props: 通过属性绑定的方式或者元素属性的方式
+    // events / nativeEvents：通过带有sync的属性绑定或者事件监听的方式
+    // directives: 通过指令的方式
     const list = el.attrsList;
 
     let i, l, name, rawName, value, modifiers, syncGen, isDynamic;

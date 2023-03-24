@@ -406,6 +406,8 @@ function genScopedSlots(el, slots, state) {
         .map((key) => genScopedSlot(slots[key], state))
         .join(",");
 
+    // generatedSlots:
+    // {key:slotTarget, fn: (slotScope)=>genElement(el),proxy:true},{}
     return `scopedSlots:_u([${generatedSlots}]${
         needsForceUpdate ? `,null,true` : ``
     }${
