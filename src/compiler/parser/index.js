@@ -649,8 +649,6 @@ function processOnce(el) {
     }
 }
 
-// handle content being passed to a component as slot,
-// e.g. <template slot="xxx">, <div slot-scope="xxx">
 function processSlotContent(el) {
     let slotScope;
     if (el.tag === "template") {

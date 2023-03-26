@@ -27,7 +27,7 @@ function transformNode(el: ASTElement, options: CompilerOptions) {
     }
 }
 
-function genData(el): string {
+function genData(el) {
     let data = "";
     if (el.staticClass) {
         data += `staticClass:${el.staticClass},`;

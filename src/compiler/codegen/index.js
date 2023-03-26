@@ -15,7 +15,7 @@ type DirectiveFunction = (
 ) => boolean;
 
 export class CodegenState {
-    constructor(options: CompilerOptions) {
+    constructor(options) {
         this.options = options;
         this.warn = options.warn || baseWarn;
         this.transforms = pluckModuleFunction(options.modules, "transformCode");
@@ -65,9 +65,11 @@ export function genElement(el, state) {
         return genSlot(el, state);
     } else {
         let data = genData(el, state);
+
         const children = el.inlineTemplate
             ? null
             : genChildren(el, state, true);
+
         const tag = el.component ? el.component : el.tagName;
 
         let code = `_c('${tag}'${
@@ -93,7 +95,7 @@ function genStatic(el, state) {
     }
     state.staticRenderFns.push(`with(this){return ${genElement(el, state)}}`);
     state.pre = originalPreState;
-    return `_m(${state.staticRenderFns.length - 1}${
+    return `_m(`with(this){return ${genElement(el, state)}`${
         el.staticInFor ? ",true" : ""
     })`;
 }
@@ -128,7 +130,7 @@ function genOnce(el, state) {
 }
 
 export function genIf(el, state, altGen, altEmpty) {
-    el.ifProcessed = true; // avoid recursion
+    el.ifProcessed = true;
     return genIfConditions(el.ifConditions.slice(), state, altGen, altEmpty);
 }
 
@@ -139,7 +141,7 @@ function genIfConditions(conditions, state, altGen, altEmpty) {
 
     const condition = conditions.shift();
     return condition.exp
-        ? `(${condition.exp})?${genTernaryExp(
+        ? `(${condition.exp})?${genElement(
               condition.block
           )}:${genIfConditions(conditions, state, altGen, altEmpty)}`
         : `${genTernaryExp(condition.block)}`;
@@ -178,9 +180,9 @@ export function genFor(el, state, altGen, altHelper) {
 
     el.forProcessed = true; // avoid recursion
     return (
-        `${altHelper || "_l"}((${exp}),` +
+        `"_l"((${exp}),` +
         `function(${alias}${iterator1}${iterator2}){` +
-        `return ${(altGen || genElement)(el, state)}` +
+        `return ${genElement(el, state)}` +
         "})"
     );
 }
@@ -205,7 +207,11 @@ export function genData(el, state) {
      *  nativeOn:{}
      *  slot: el.slotTarget
      *  scopedSlots:[]
-     *  model:{value: el.model.value, expressions:el.model.expressions,callback: el.model.callback}
+     *  model:{
+     *      value: el.model.value,
+     *      expressions:el.model.expressions,
+     *      callback: el.model.callback
+     *  }
      * }
      */
     let data = "{";
@@ -230,7 +236,7 @@ export function genData(el, state) {
     if (el.component) {
         data += `tag:"${el.tag}",`;
     }
-    // 处理:class=  class=  :style=  style=
+    // 处理class=  class=  :style=  style=
     for (let i = 0; i < state.dataGenFns.length; i++) {
         data += state.dataGenFns[i](el);
     }
@@ -261,7 +267,8 @@ export function genData(el, state) {
     }
     // component v-model
     if (el.model) {
-        data += `model:{value:${el.model.value},callback:${el.model.callback},expression:${el.model.expression}},`;
+        const model = el.model.value
+        data += `model:{value:${model.value},callback:${model.callback},expression:${model.expression}},`;
     }
     // inline-template
     if (el.inlineTemplate) {
@@ -270,6 +277,7 @@ export function genData(el, state) {
             data += `${inlineTemplate},`;
         }
     }
+
     data = data.replace(/,$/, "") + "}";
     // v-bind dynamic argument wrap
     // v-bind with dynamic arguments must be applied using the same v-bind object
@@ -436,7 +444,7 @@ function containsSlotChild(el: ASTNode): boolean {
     return false;
 }
 
-function genScopedSlot(el: ASTElement, state: CodegenState): string {
+function genScopedSlot(el , state) {
     const isLegacySyntax = el.attrsMap["slot-scope"];
     if (el.if && !el.ifProcessed && !isLegacySyntax) {
         return genIf(el, state, genScopedSlot, `null`);
@@ -479,7 +487,7 @@ export function genChildren(el, state, checkSkip, altGenElement, altGenNode) {
                 ? `,1`
                 : `,0`
             : ``;
-        return `${(altGenElement || genElement)(
+        return `${genElement(
             el,
             state
         )}${normalizationType}`;
@@ -487,8 +495,7 @@ export function genChildren(el, state, checkSkip, altGenElement, altGenNode) {
     const normalizationType = checkSkip
         ? getNormalizationType(children, state.maybeComponent)
         : 0;
-    const gen = altGenNode || genNode;
-    return `[${children.map((c) => gen(c, state)).join(",")}]${
+    return `[${children.map((c) => genNode(c, state)).join(",")}]${
         normalizationType ? `,${normalizationType}` : ""
     }`;
 }

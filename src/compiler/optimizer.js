@@ -82,7 +82,7 @@ function markStaticRoots(node: ASTNode, isInFor: boolean) {
     }
 }
 
-function isStatic(node): boolean {
+function isStatic(node) {
     if (node.type === 2) {
         // expression
         return false;
