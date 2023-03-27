@@ -119,7 +119,7 @@ export function createComponent(Ctor, data, context, children, tag) {
     // 合并各层级options
     resolveConstructorOptions(Ctor);
 
-    // 处理组件上的v-model
+    // 处理组件上的v-model，处理为数据绑定和事件绑定
     isDef(data.model) && transformModel(Ctor.options, data);
 
     const propsData = extractPropsFromVNodeData(data, Ctor, tag);
@@ -167,7 +167,7 @@ export function createComponent(Ctor, data, context, children, tag) {
 }
 
 export function createComponentInstanceForVnode(vnode, parent) {
-    const options: InternalComponentOptions = {
+    const options = {
         _isComponent: true,
         _parentVnode: vnode,
         parent,

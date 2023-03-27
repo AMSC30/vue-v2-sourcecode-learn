@@ -203,7 +203,7 @@ export function createPatchFunction(backend) {
         if (isDef(i)) {
             const isReactivated = isDef(vnode.componentInstance) && i.keepAlive;
             if (isDef((i = i.hook)) && isDef((i = i.init))) {
-                i(vnode, false /* hydrating */);
+                i(vnode, false);
             }
 
             if (isDef(vnode.componentInstance)) {
@@ -235,10 +235,7 @@ export function createPatchFunction(backend) {
             invokeCreateHooks(vnode, insertedVnodeQueue);
             setScope(vnode);
         } else {
-            // empty component root.
-            // skip all element-related modules except for ref (#3455)
             registerRef(vnode);
-            // make sure to invoke the insert hook
             insertedVnodeQueue.push(vnode);
         }
     }
@@ -671,6 +668,7 @@ export function createPatchFunction(backend) {
                 i(oldVnode, vnode);
         }
         if (isUndef(vnode.text)) {
+            // 元素节点都有子节点
             if (isDef(oldCh) && isDef(ch)) {
                 if (oldCh !== ch)
                     updateChildren(
@@ -681,17 +679,21 @@ export function createPatchFunction(backend) {
                         removeOnly
                     );
             } else if (isDef(ch)) {
+                // 老的节点是文本节点
                 if (process.env.NODE_ENV !== "production") {
                     checkDuplicateKeys(ch);
                 }
                 if (isDef(oldVnode.text)) nodeOps.setTextContent(elm, "");
                 addVnodes(elm, null, ch, 0, ch.length - 1, insertedVnodeQueue);
             } else if (isDef(oldCh)) {
+                // 新的元素节点没有子节点，删除老的子节点
                 removeVnodes(oldCh, 0, oldCh.length - 1);
             } else if (isDef(oldVnode.text)) {
+                // 清除老的文本节点
                 nodeOps.setTextContent(elm, "");
             }
         } else if (oldVnode.text !== vnode.text) {
+            // 新节点是文本节点，如果不相等，直接更新老节点的文本内容
             nodeOps.setTextContent(elm, vnode.text);
         }
         if (isDef(data)) {
@@ -849,6 +851,7 @@ export function createPatchFunction(backend) {
     }
 
     return function patch(oldVnode, vnode, hydrating, removeOnly) {
+        // 卸载
         if (isUndef(vnode)) {
             if (isDef(oldVnode)) invokeDestroyHook(oldVnode);
             return;
@@ -857,10 +860,12 @@ export function createPatchFunction(backend) {
         let isInitialPatch = false;
         const insertedVnodeQueue = [];
 
+        // 挂载
         if (isUndef(oldVnode)) {
             isInitialPatch = true;
             createElm(vnode, insertedVnodeQueue);
         } else {
+            // 更新
             const isRealElement = isDef(oldVnode.nodeType);
             if (!isRealElement && sameVnode(oldVnode, vnode)) {
                 // patch existing root node
