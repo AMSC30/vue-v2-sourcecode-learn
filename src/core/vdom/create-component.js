@@ -55,7 +55,7 @@ const componentVNodeHooks = {
         );
     },
 
-    insert(vnode: MountedComponentVNode) {
+    insert(vnode) {
         const { context, componentInstance } = vnode;
         if (!componentInstance._isMounted) {
             componentInstance._isMounted = true;

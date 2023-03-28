@@ -65,21 +65,7 @@ export function _createElement(
         // in case of component :is set to falsy value
         return createEmptyVNode();
     }
-    // warn against non-primitive key
-    if (
-        process.env.NODE_ENV !== "production" &&
-        isDef(data) &&
-        isDef(data.key) &&
-        !isPrimitive(data.key)
-    ) {
-        if (!__WEEX__ || !("@binding" in data.key)) {
-            warn(
-                "Avoid using non-primitive value as key, " +
-                    "use string/number value instead.",
-                context
-            );
-        }
-    }
+
     // support single function children as default scoped slot
     if (Array.isArray(children) && typeof children[0] === "function") {
         data = data || {};
@@ -94,21 +80,8 @@ export function _createElement(
     let vnode, ns;
     if (typeof tag === "string") {
         let Ctor;
-        ns =
-            (context.$vnode && context.$vnode.ns) ||
-            config.getTagNamespace(tag);
+
         if (config.isReservedTag(tag)) {
-            // platform built-in elements
-            if (
-                process.env.NODE_ENV !== "production" &&
-                isDef(data) &&
-                isDef(data.nativeOn)
-            ) {
-                warn(
-                    `The .native modifier for v-on is only valid on components but it was used on <${tag}>.`,
-                    context
-                );
-            }
             vnode = new VNode(
                 config.parsePlatformTagName(tag),
                 data,

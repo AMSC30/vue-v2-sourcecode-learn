@@ -129,6 +129,7 @@ export function createPatchFunction(backend) {
 
         vnode.isRootInsert = !nested;
 
+        // 如果是组件，创建组件实例
         if (createComponent(vnode, insertedVnodeQueue, parentElm, refElm)) {
             return;
         }
@@ -154,37 +155,18 @@ export function createPatchFunction(backend) {
                 }
             }
 
-            vnode.elm = vnode.ns
-                ? nodeOps.createElementNS(vnode.ns, tag)
-                : nodeOps.createElement(tag, vnode);
+            // 创建vnode的元素节点
+            vnode.elm = nodeOps.createElement(tag, vnode);
+
+            // 创建style的scopedId
             setScope(vnode);
 
-            /* istanbul ignore if */
-            if (__WEEX__) {
-                // in Weex, the default insertion order is parent-first.
-                // List items can be optimized to use children-first insertion
-                // with append="tree".
-                const appendAsTree = isDef(data) && isTrue(data.appendAsTree);
-                if (!appendAsTree) {
-                    if (isDef(data)) {
-                        invokeCreateHooks(vnode, insertedVnodeQueue);
-                    }
-                    insert(parentElm, vnode.elm, refElm);
-                }
-                createChildren(vnode, children, insertedVnodeQueue);
-                if (appendAsTree) {
-                    if (isDef(data)) {
-                        invokeCreateHooks(vnode, insertedVnodeQueue);
-                    }
-                    insert(parentElm, vnode.elm, refElm);
-                }
-            } else {
-                createChildren(vnode, children, insertedVnodeQueue);
-                if (isDef(data)) {
-                    invokeCreateHooks(vnode, insertedVnodeQueue);
-                }
-                insert(parentElm, vnode.elm, refElm);
-            }
+            // 递归创建子节点
+            createChildren(vnode, children, insertedVnodeQueue);
+
+            isDef(data) && invokeCreateHooks(vnode, insertedVnodeQueue);
+
+            insert(parentElm, vnode.elm, refElm);
 
             if (process.env.NODE_ENV !== "production" && data && data.pre) {
                 creatingElmInVPre--;
@@ -371,7 +353,7 @@ export function createPatchFunction(backend) {
         let i, j;
         const data = vnode.data;
         if (isDef(data)) {
-            if (isDef((i = data.hook)) && isDef((i = i.destroy))) i(vnode);
+            data.hook.destroy(vnode);
             for (i = 0; i < cbs.destroy.length; ++i) cbs.destroy[i](vnode);
         }
         if (isDef((i = vnode.children))) {
@@ -852,23 +834,23 @@ export function createPatchFunction(backend) {
 
     return function patch(oldVnode, vnode, hydrating, removeOnly) {
         // 卸载
-        if (isUndef(vnode)) {
-            if (isDef(oldVnode)) invokeDestroyHook(oldVnode);
+        if (!vnode) {
+            // 销毁组件及子组件或者标记为不活跃状态
+            if (oldVnode) oldVnode.data.hook.destroy(oldVnode);
             return;
         }
 
         let isInitialPatch = false;
         const insertedVnodeQueue = [];
 
-        // 挂载
         if (isUndef(oldVnode)) {
+            // 子组件首次挂载
             isInitialPatch = true;
             createElm(vnode, insertedVnodeQueue);
         } else {
             // 更新
             const isRealElement = isDef(oldVnode.nodeType);
-            if (!isRealElement && sameVnode(oldVnode, vnode)) {
-                // patch existing root node
+            if (!isRealElement) {
                 patchVnode(
                     oldVnode,
                     vnode,
@@ -878,52 +860,19 @@ export function createPatchFunction(backend) {
                     removeOnly
                 );
             } else {
-                if (isRealElement) {
-                    // mounting to a real element
-                    // check if this is server-rendered content and if we can perform
-                    // a successful hydration.
-                    if (
-                        oldVnode.nodeType === 1 &&
-                        oldVnode.hasAttribute(SSR_ATTR)
-                    ) {
-                        oldVnode.removeAttribute(SSR_ATTR);
-                        hydrating = true;
-                    }
-                    if (isTrue(hydrating)) {
-                        if (hydrate(oldVnode, vnode, insertedVnodeQueue)) {
-                            invokeInsertHook(vnode, insertedVnodeQueue, true);
-                            return oldVnode;
-                        } else if (process.env.NODE_ENV !== "production") {
-                            warn(
-                                "The client-side rendered virtual DOM tree is not matching " +
-                                    "server-rendered content. This is likely caused by incorrect " +
-                                    "HTML markup, for example nesting block-level elements inside " +
-                                    "<p>, or missing <tbody>. Bailing hydration and performing " +
-                                    "full client-side render."
-                            );
-                        }
-                    }
-                    // either not server-rendered, or hydration failed.
-                    // create an empty node and replace it
-                    oldVnode = emptyNodeAt(oldVnode);
-                }
+                // 根组件首次挂载，根据$el创建vnode
+                oldVnode = emptyNodeAt(oldVnode);
 
-                // replacing existing element
                 const oldElm = oldVnode.elm;
                 const parentElm = nodeOps.parentNode(oldElm);
 
-                // create new node
                 createElm(
                     vnode,
                     insertedVnodeQueue,
-                    // extremely rare edge case: do not insert if old element is in a
-                    // leaving transition. Only happens when combining transition +
-                    // keep-alive + HOCs. (#4590)
-                    oldElm._leaveCb ? null : parentElm,
+                    parentElm,
                     nodeOps.nextSibling(oldElm)
                 );
 
-                // update parent placeholder node element, recursively
                 if (isDef(vnode.parent)) {
                     let ancestor = vnode.parent;
                     const patchable = isPatchable(vnode);
@@ -953,7 +902,6 @@ export function createPatchFunction(backend) {
                     }
                 }
 
-                // destroy old node
                 if (isDef(parentElm)) {
                     removeVnodes([oldVnode], 0, 0);
                 } else if (isDef(oldVnode.tag)) {

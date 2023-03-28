@@ -29,7 +29,7 @@ export function setActiveInstance(vm) {
     };
 }
 
-export function initLifecycle(vm: Component) {
+export function initLifecycle(vm) {
     const options = vm.$options;
     let parent = options.parent;
 
@@ -270,7 +270,7 @@ export function activateChildComponent(vm: Component, direct?: boolean) {
     }
 }
 
-export function deactivateChildComponent(vm: Component, direct?: boolean) {
+export function deactivateChildComponent(vm, direct) {
     if (direct) {
         vm._directInactive = true;
         if (isInInactiveTree(vm)) {
