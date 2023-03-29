@@ -1,5 +1,3 @@
-/* @flow */
-
 import { hasOwn } from "shared/util";
 import { warn, hasSymbol } from "../util/index";
 import { defineReactive, toggleObserving } from "../observer/index";
@@ -16,25 +14,23 @@ export function initProvide(vm) {
 export function initInjections(vm) {
     const result = resolveInject(vm.$options.inject, vm);
 
-    if (result) {
-        toggleObserving(false);
+    toggleObserving(false);
 
+    result &&
         Object.keys(result).forEach((key) => {
             defineReactive(vm, key, result[key]);
         });
 
-        toggleObserving(true);
-    }
+    toggleObserving(true);
 }
 
 export function resolveInject(inject, vm) {
     if (!inject) return;
 
     const result = Object.create(null);
-    const keys = hasSymbol ? Reflect.ownKeys(inject) : Object.keys(inject);
+    const keys = Object.keys(inject);
 
     for (let i = 0; i < keys.length; i++) {
-        // 拿到key值
         const key = keys[i];
 
         if (key === "__ob__") continue;

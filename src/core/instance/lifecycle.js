@@ -286,7 +286,7 @@ export function deactivateChildComponent(vm, direct) {
     }
 }
 
-export function callHook(vm: Component, hook: string) {
+export function callHook(vm, hook) {
     pushTarget();
     const handlers = vm.$options[hook];
     const info = `${hook} hook`;

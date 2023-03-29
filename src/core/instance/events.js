@@ -51,7 +51,7 @@ export function updateComponentListeners(vm, listeners, oldListeners) {
     target = undefined;
 }
 
-export function eventsMixin(Vue: Class<Component>) {
+export function eventsMixin(Vue) {
     Vue.prototype.$on = function (event, fn) {
         if (Array.isArray(event)) {
             for (let i = 0, l = event.length; i < l; i++) {
@@ -82,7 +82,6 @@ export function eventsMixin(Vue: Class<Component>) {
     Vue.prototype.$off = function (event, fn) {
         const vm = this;
 
-        // 如果不传入参数，注销所有的事件回调，将_events属性置为一个空的对象
         if (!arguments.length) {
             vm._events = Object.create(null);
             return vm;
@@ -129,7 +128,7 @@ export function eventsMixin(Vue: Class<Component>) {
             const args = toArray(arguments, 1);
             const info = `event handler for "${event}"`;
             for (let i = 0, l = cbs.length; i < l; i++) {
-                invokeWithErrorHandling(cbs[i], vm, args, vm, info);
+                cbs[i].apply(vm, args);
             }
         }
         return vm;

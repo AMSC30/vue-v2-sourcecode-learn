@@ -18,22 +18,19 @@ import {
 
 const arrayKeys = Object.getOwnPropertyNames(arrayMethods);
 
-export let shouldObserve: boolean = true;
+export let shouldObserve = true;
 
 export function toggleObserving(value: boolean) {
     shouldObserve = value;
 }
 
 export class Observer {
-    constructor(value: any) {
+    constructor(value) {
         this.value = value;
-
-        // 依赖收集器
         this.dep = new Dep();
-
         this.vmCount = 0;
 
-        def(value, "__ob__", this);
+        value["__ob__"] = this;
 
         if (!Array.isArray(value)) {
             this.walk(value);
@@ -53,9 +50,9 @@ export class Observer {
         });
     }
 
-    observeArray(items: Array<any>) {
-        for (let i = 0, l = items.length; i < l; i++) {
-            observe(items[i]);
+    observeArray(list) {
+        for (let i = 0, l = list.length; i < l; i++) {
+            observe(list[i]);
         }
     }
 }
@@ -71,19 +68,18 @@ function copyAugment(target: Object, src: Object, keys: Array<string>) {
     }
 }
 
-export function observe(value: any, asRootData: ?boolean): Observer | void {
+export function observe(value, asRootData) {
     if (!isObject(value) || value instanceof VNode) {
         return;
     }
 
-    let ob: Observer | void;
+    let ob;
 
     if (hasOwn(value, "__ob__") && value.__ob__ instanceof Observer) {
         // 如果value有Observe的实例
         ob = value.__ob__;
     } else if (
         shouldObserve &&
-        !isServerRendering() &&
         (Array.isArray(value) || isPlainObject(value)) &&
         Object.isExtensible(value) &&
         !value._isVue

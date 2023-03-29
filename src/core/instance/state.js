@@ -146,7 +146,8 @@ export function getData(data, vm): any {
 const computedWatcherOptions = { lazy: true };
 
 function initComputed(vm, computed) {
-    const watchers = (vm._computedWatchers = Object.create(null));
+    const vm._computedWatchers = Object.create(null)
+    const watchers = vm._computedWatchers;
     const isSSR = isServerRendering();
 
     for (const key in computed) {
@@ -278,7 +279,7 @@ function createWatcher(vm, expOrFn, handler, options) {
     return vm.$watch(expOrFn, handler, options);
 }
 
-export function stateMixin(Vue: Class<Component>) {
+export function stateMixin(Vue) {
     Object.defineProperty(Vue.prototype, "$data", {
         get() {
             return this._data;
@@ -297,18 +298,16 @@ export function stateMixin(Vue: Class<Component>) {
 
     // 在原型对象上声明$watch方法
     Vue.prototype.$watch = function (expOrFn, cb, options) {
-        const vm = this;
-
         if (isPlainObject(cb)) {
-            return createWatcher(vm, expOrFn, cb, options);
+            return createWatcher(this, expOrFn, cb, options);
         }
 
         options = options || {};
         options.user = true;
 
-        const watcher = new Watcher(vm, expOrFn, cb, options);
+        const watcher = new Watcher(this, expOrFn, cb, options);
 
-        options.immediate && cb.call(vm, watcher.value);
+        options.immediate && watcher.cb.call(this, watcher.value);
 
         return function unwatchFn() {
             watcher.teardown();

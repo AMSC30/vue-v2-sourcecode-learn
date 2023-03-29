@@ -15,8 +15,9 @@ export function initMixin(Vue) {
         const vm = this;
 
         vm._uid = uid++;
-
         vm._isVue = true;
+        vm._renderProxy = vm;
+        vm._self = vm;
 
         if (options && options._isComponent) {
             initInternalComponent(vm, options);
@@ -27,9 +28,6 @@ export function initMixin(Vue) {
                 vm
             );
         }
-
-        vm._renderProxy = vm;
-        vm._self = vm;
 
         // 初始化组件关系
         initLifecycle(vm);
@@ -76,7 +74,7 @@ export function initInternalComponent(vm, options) {
     }
 }
 
-export function resolveConstructorOptions(Ctor: Class<Component>) {
+export function resolveConstructorOptions(Ctor) {
     let options = Ctor.options;
     if (Ctor.super) {
         const superOptions = resolveConstructorOptions(Ctor.super);
@@ -103,7 +101,7 @@ export function resolveConstructorOptions(Ctor: Class<Component>) {
     return options;
 }
 
-function resolveModifiedOptions(Ctor: Class<Component>): ?Object {
+function resolveModifiedOptions(Ctor) {
     let modified;
     const latest = Ctor.options;
     const sealed = Ctor.sealedOptions;
