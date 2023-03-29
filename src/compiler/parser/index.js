@@ -79,7 +79,7 @@ function processRawAttrs(el) {
     const list = el.attrsList;
     const len = list.length;
     if (len) {
-        const attrs: Array<ASTAttr> = (el.attrs = new Array(len));
+        const attrs = (el.attrs = new Array(len));
         for (let i = 0; i < len; i++) {
             attrs[i] = {
                 name: list[i].name,
@@ -91,7 +91,6 @@ function processRawAttrs(el) {
             }
         }
     } else if (!el.pre) {
-        // non root node in pre blocks with no attributes
         el.plain = true;
     }
 }
