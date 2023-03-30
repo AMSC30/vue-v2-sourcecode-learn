@@ -218,12 +218,6 @@ function processIfConditions(el, parent) {
             exp: el.elseif,
             block: el,
         });
-    } else if (process.env.NODE_ENV !== "production") {
-        warn(
-            `v-${el.elseif ? 'else-if="' + el.elseif + '"' : "else"} ` +
-                `used on element <${el.tag}> without corresponding v-if.`,
-            el.rawAttrsMap[el.elseif ? "v-else-if" : "v-else"]
-        );
     }
 }
 
@@ -547,9 +541,7 @@ function processAttrs(el) {
                     isDynamic
                 );
             } else {
-                // normal directives
                 name = name.replace(dirRE, "");
-                // parse arg
                 const argMatch = name.match(argRE);
                 let arg = argMatch && argMatch[1];
                 isDynamic = false;
@@ -575,18 +567,6 @@ function processAttrs(el) {
                 }
             }
         } else {
-            if (process.env.NODE_ENV !== "production") {
-                const res = parseText(value, delimiters);
-                if (res) {
-                    warn(
-                        `${name}="${value}": ` +
-                            "Interpolation inside attributes has been removed. " +
-                            "Use v-bind or the colon shorthand instead. For example, " +
-                            'instead of <div id="{{ val }}">, use <div :id="val">.',
-                        list[i]
-                    );
-                }
-            }
             addAttr(el, name, JSON.stringify(value), list[i]);
 
             if (
@@ -709,13 +689,10 @@ export function parse(template, options) {
     function closeElement(element) {
         if (!inPre) {
             // 清空空白子节点
-            let lastNode;
-            while (
-                (lastNode = element.children[element.children.length - 1]) &&
-                lastNode.type === 3 &&
-                lastNode.text === " "
-            ) {
+            let lastNode = element.children[element.children.length - 1];
+            while (lastNode && lastNode.type === 3 && lastNode.text === " ") {
                 element.children.pop();
+                lastNode = element.children[element.children.length - 1];
             }
 
             if (!element.processed) {
@@ -739,6 +716,7 @@ export function parse(template, options) {
                     element = transforms[i](element, options) || element;
                 }
 
+                // 处理属性绑定、事件绑定、自定义指令
                 processAttrs(element);
             }
         }
@@ -763,15 +741,12 @@ export function parse(template, options) {
             }
         }
 
-        // not script tag or style tag
         if (currentParent && !element.forbidden) {
             if (element.elseif || element.else) {
+                // 将else、else-if添加到if元素的ifConditions中
                 processIfConditions(element, currentParent);
             } else {
                 if (element.slotScope) {
-                    // scoped slot
-                    // keep it in the children list so that v-else(-if) conditions can
-                    // find it as the prev node.
                     const name = element.slotTarget || '"default"';
                     (currentParent.scopedSlots ||
                         (currentParent.scopedSlots = {}))[name] = element;
@@ -842,46 +817,22 @@ export function parse(template, options) {
         shouldKeepComment: options.comments,
         outputSourceRange: options.outputSourceRange,
         start(tag, attrs, unary, start, end) {
-            const ns =
-                (currentParent && currentParent.ns) ||
-                platformGetTagNamespace(tag);
-
-            if (isIE && ns === "svg") {
-                attrs = guardIESVGBug(attrs);
-            }
-
+            // 创建AST节点
             let element = createASTElement(tag, attrs, currentParent);
 
-            if (ns) {
-                element.ns = ns;
+            if (options.outputSourceRange) {
+                element.start = start;
+                element.end = end;
+                element.rawAttrsMap = element.attrsList.reduce(
+                    (cumulated, attr) => {
+                        cumulated[attr.name] = attr;
+                        return cumulated;
+                    },
+                    {}
+                );
             }
 
-            if (process.env.NODE_ENV !== "production") {
-                if (options.outputSourceRange) {
-                    element.start = start;
-                    element.end = end;
-                    element.rawAttrsMap = element.attrsList.reduce(
-                        (cumulated, attr) => {
-                            cumulated[attr.name] = attr;
-                            return cumulated;
-                        },
-                        {}
-                    );
-                }
-                attrs.forEach((attr) => {
-                    if (invalidAttributeRE.test(attr.name)) {
-                        warn(
-                            `Invalid dynamic argument expression: attribute names cannot contain ` +
-                                `spaces, quotes, <, >, / or =.`,
-                            {
-                                start: attr.start + attr.name.indexOf(`[`),
-                                end: attr.start + attr.name.length,
-                            }
-                        );
-                    }
-                });
-            }
-
+            // 判断是否是style和script标签
             if (isForbiddenTag(element) && !isServerRendering()) {
                 element.forbidden = true;
                 process.env.NODE_ENV !== "production" &&
@@ -898,16 +849,19 @@ export function parse(template, options) {
                 element = preTransforms[i](element, options) || element;
             }
 
+            // 是否使用了v-pre
             if (!inVPre) {
                 processPre(element);
                 if (element.pre) {
                     inVPre = true;
                 }
             }
+            // 是否是pre标签
             if (platformIsPreTag(element.tag)) {
                 inPre = true;
             }
 
+            // 处理v-if、v-for、v-once
             if (inVPre) {
                 processRawAttrs(element);
             } else if (!element.processed) {
@@ -922,9 +876,6 @@ export function parse(template, options) {
 
             if (!root) {
                 root = element;
-                if (process.env.NODE_ENV !== "production") {
-                    checkRootConstraints(root);
-                }
             }
 
             if (!unary) {
@@ -950,23 +901,9 @@ export function parse(template, options) {
         },
 
         chars(text, start, end) {
-            if (!currentParent) {
-                if (process.env.NODE_ENV !== "production") {
-                    if (text === template) {
-                        warnOnce(
-                            "Component template requires a root element, rather than just text.",
-                            { start }
-                        );
-                    } else if ((text = text.trim())) {
-                        warnOnce(
-                            `text "${text}" outside root element will be ignored.`,
-                            { start }
-                        );
-                    }
-                }
-                return;
-            }
+            if (!currentParent) return;
 
+            // 是textarea标签中的文本，直接忽略
             if (
                 isIE &&
                 currentParent.tag === "textarea" &&
@@ -979,7 +916,6 @@ export function parse(template, options) {
             if (inPre || text.trim()) {
                 text = isTextTag(currentParent) ? text : decodeHTMLCached(text);
             } else if (!children.length) {
-                // remove the whitespace-only node right after an opening tag
                 text = "";
             } else if (whitespaceOption) {
                 if (whitespaceOption === "condense") {
@@ -994,27 +930,23 @@ export function parse(template, options) {
             }
             if (text) {
                 if (!inPre && whitespaceOption === "condense") {
-                    // condense consecutive whitespaces into single space
                     text = text.replace(whitespaceRE, " ");
                 }
-                let res;
-                let child: ?ASTNode;
-                if (
-                    !inVPre &&
-                    text !== " " &&
-                    (res = parseText(text, delimiters))
-                ) {
-                    /**
-                     * res:
-                     *
-                     * hello {{ name | translate}} !
-                     *
-                     * {
-                     *  expression:"hello"+"_s(translate(name))"+"!",
-                     *  tokens:["hello",{ @binding: "_s(translate(name))"},"!"]
-                     * }
-                     *
-                     * */
+                // 插值表达式和过滤器
+                /**
+                 * res:
+                 *
+                 * hello {{ name | translate}} !
+                 *
+                 * {
+                 *  expression:"hello"+"_s(translate(name))"+"!",
+                 *  tokens:["hello",{ @binding: "_s(translate(name))"},"!"]
+                 * }
+                 *
+                 * */
+                let res = parseText(text, delimiters);
+                let child;
+                if (!inVPre && text !== " " && res) {
                     child = {
                         type: 2,
                         expression: res.expression,

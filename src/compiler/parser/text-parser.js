@@ -28,12 +28,10 @@ export function parseText(text, delimiters) {
     let match, index, tokenValue;
     while ((match = tagRE.exec(text))) {
         index = match.index;
-        // push text token
         if (index > lastIndex) {
             rawTokens.push((tokenValue = text.slice(lastIndex, index)));
             tokens.push(JSON.stringify(tokenValue));
         }
-        // tag token
         const exp = parseFilters(match[1].trim());
         tokens.push(`_s(${exp})`);
         rawTokens.push({ "@binding": exp });
