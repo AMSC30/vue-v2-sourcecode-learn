@@ -100,10 +100,10 @@ function genStatic(el, state) {
     })`;
 }
 
-// v-once
 function genOnce(el, state) {
     el.onceProcessed = true;
     if (el.if && !el.ifProcessed) {
+        el.ifProcessed = true;
         return genIf(el, state);
     } else if (el.staticInFor) {
         let key = "";
@@ -163,7 +163,6 @@ export function genFor(el, state, altGen, altHelper) {
     const iterator2 = el.iterator2 ? `,${el.iterator2}` : "";
 
     if (
-        process.env.NODE_ENV !== "production" &&
         state.maybeComponent(el) &&
         el.tag !== "slot" &&
         el.tag !== "template" &&
@@ -178,7 +177,7 @@ export function genFor(el, state, altGen, altHelper) {
         );
     }
 
-    el.forProcessed = true; // avoid recursion
+    el.forProcessed = true;
     return (
         `"_l"((${exp}),` +
         `function(${alias}${iterator1}${iterator2}){` +
@@ -236,6 +235,7 @@ export function genData(el, state) {
     if (el.component) {
         data += `tag:"${el.tag}",`;
     }
+
     // 处理class=  class=  :style=  style=
     for (let i = 0; i < state.dataGenFns.length; i++) {
         data += state.dataGenFns[i](el);
@@ -300,7 +300,7 @@ export function genData(el, state) {
     return data;
 }
 
-function genDirectives(el, state): string | void {
+function genDirectives(el, state){
     const dirs = el.directives;
     if (!dirs) return;
 
