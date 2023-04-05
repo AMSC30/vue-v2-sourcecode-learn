@@ -17,11 +17,13 @@ import VNode, { createEmptyVNode } from "../vdom/vnode";
 import { isUpdatingChildComponent } from "./lifecycle";
 
 export function initRender(vm) {
-    vm._vnode = null;
-    vm._staticTrees = null;
-
     const options = vm.$options;
-    const parentVnode = (vm.$vnode = options._parentVnode);
+
+    vm._staticTrees = null;
+    vm._vnode = null;
+    vm.$vnode = options._parentVnode;
+
+    const parentVnode = options._parentVnode;
     const renderContext = parentVnode && parentVnode.context;
 
     vm.$slots = resolveSlots(options._renderChildren, renderContext);
@@ -67,6 +69,8 @@ export function renderMixin(Vue) {
         const vm = this;
         const { render, _parentVnode } = vm.$options;
 
+        vm.$vnode = _parentVnode;
+
         if (_parentVnode) {
             vm.$scopedSlots = normalizeScopedSlots(
                 _parentVnode.data.scopedSlots,
@@ -74,8 +78,6 @@ export function renderMixin(Vue) {
                 vm.$scopedSlots
             );
         }
-
-        vm.$vnode = _parentVnode;
 
         currentRenderingInstance = vm;
 

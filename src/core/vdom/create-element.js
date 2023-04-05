@@ -46,6 +46,7 @@ export function _createElement(
     children,
     normalizationType
 ) {
+    // data处理
     if (isDef(data) && isDef(data.__ob__)) {
         process.env.NODE_ENV !== "production" &&
             warn(
@@ -57,7 +58,8 @@ export function _createElement(
             );
         return createEmptyVNode();
     }
-    // object syntax in v-bind
+
+    // tag处理
     if (isDef(data) && isDef(data.is)) {
         tag = data.is;
     }
@@ -66,12 +68,13 @@ export function _createElement(
         return createEmptyVNode();
     }
 
-    // support single function children as default scoped slot
+    // 插槽处理
     if (Array.isArray(children) && typeof children[0] === "function") {
         data = data || {};
         data.scopedSlots = { default: children[0] };
         children.length = 0;
     }
+
     if (normalizationType === ALWAYS_NORMALIZE) {
         children = normalizeChildren(children);
     } else if (normalizationType === SIMPLE_NORMALIZE) {
@@ -82,6 +85,7 @@ export function _createElement(
         let Ctor;
 
         if (config.isReservedTag(tag)) {
+            // 浏览器普通标签
             vnode = new VNode(
                 config.parsePlatformTagName(tag),
                 data,
@@ -94,7 +98,7 @@ export function _createElement(
             (!data || !data.pre) &&
             isDef((Ctor = resolveAsset(context.$options, "components", tag)))
         ) {
-            // component
+            // 组件标签
             vnode = createComponent(Ctor, data, context, children, tag);
         } else {
             vnode = new VNode(
@@ -110,6 +114,7 @@ export function _createElement(
         // direct component options / constructor
         vnode = createComponent(tag, data, context, children);
     }
+
     if (Array.isArray(vnode)) {
         return vnode;
     } else if (isDef(vnode)) {

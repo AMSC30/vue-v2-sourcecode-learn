@@ -92,18 +92,14 @@ const hooksToMerge = Object.keys(componentVNodeHooks);
 export function createComponent(Ctor, data, context, children, tag) {
     const baseCtor = context.$options._base;
 
-    if (isObject(Ctor)) {
-        Ctor = baseCtor.extend(Ctor);
-    }
+    isObject(Ctor) && (Ctor = baseCtor.extend(Ctor));
 
     let asyncFactory;
+    // 异步组件
     if (isUndef(Ctor.cid)) {
         asyncFactory = Ctor;
         Ctor = resolveAsyncComponent(asyncFactory, baseCtor);
         if (Ctor === undefined) {
-            // return a placeholder node for async component, which is rendered
-            // as a comment node but preserves all the raw information for the node.
-            // the information will be used for async server-rendering and hydration.
             return createAsyncPlaceholder(
                 asyncFactory,
                 data,
