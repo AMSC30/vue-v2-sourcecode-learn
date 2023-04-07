@@ -98,6 +98,7 @@ export function createComponent(Ctor, data, context, children, tag) {
     // 异步组件
     if (isUndef(Ctor.cid)) {
         asyncFactory = Ctor;
+        // 解析异步组件
         Ctor = resolveAsyncComponent(asyncFactory, baseCtor);
         if (Ctor === undefined) {
             return createAsyncPlaceholder(
@@ -143,7 +144,6 @@ export function createComponent(Ctor, data, context, children, tag) {
         }
     }
 
-    // install component management hooks onto the placeholder node
     installComponentHooks(data);
 
     // return a placeholder vnode
@@ -199,8 +199,6 @@ function mergeHook(f1: any, f2: any): Function {
     return merged;
 }
 
-// transform component v-model info (value and callback) into
-// prop and event handler respectively.
 function transformModel(options, data) {
     // prop,value,event,callback
     const prop = (options.model && options.model.prop) || "value";

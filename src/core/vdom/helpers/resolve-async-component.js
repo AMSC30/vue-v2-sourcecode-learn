@@ -69,7 +69,7 @@ export function resolveAsyncComponent(factory, baseCtor) {
 
         owner.$on("hook:destroyed", () => remove(owners, owner));
 
-        const forceRender = (renderCompleted: boolean) => {
+        const forceRender = (renderCompleted) => {
             for (let i = 0, l = owners.length; i < l; i++) {
                 (owners[i]: any).$forceUpdate();
             }
@@ -113,7 +113,6 @@ export function resolveAsyncComponent(factory, baseCtor) {
 
         if (isObject(res)) {
             if (isPromise(res)) {
-                // () => Promise
                 if (isUndef(factory.resolved)) {
                     res.then(resolve, reject);
                 }
@@ -158,7 +157,6 @@ export function resolveAsyncComponent(factory, baseCtor) {
         }
 
         sync = false;
-        // return in case resolved synchronously
         return factory.loading ? factory.loadingComp : factory.resolved;
     }
 }
