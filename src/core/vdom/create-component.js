@@ -34,8 +34,7 @@ const componentVNodeHooks = {
             !vnode.componentInstance._isDestroyed &&
             vnode.data.keepAlive
         ) {
-            const mountedNode = vnode;
-            componentVNodeHooks.prepatch(mountedNode, mountedNode);
+            componentVNodeHooks.prepatch(vnode, vnode);
         } else {
             const child = (vnode.componentInstance =
                 createComponentInstanceForVnode(vnode, activeInstance));

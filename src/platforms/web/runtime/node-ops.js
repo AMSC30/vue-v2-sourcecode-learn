@@ -2,7 +2,7 @@
 
 import { namespaceMap } from "web/util/index";
 
-export function createElement(tagName: string, vnode: VNode): Element {
+export function createElement(tagName, vnode) {
     const elm = document.createElement(tagName);
     if (tagName !== "select") {
         return elm;

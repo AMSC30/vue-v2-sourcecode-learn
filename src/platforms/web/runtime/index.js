@@ -31,12 +31,42 @@ extend(Vue.options.components, platformComponents); // Transition和TransitionGr
 
 Vue.prototype.__patch__ = inBrowser ? patch : noop;
 
-Vue.prototype.$mount = function (
-    el?: string | Element,
-    hydrating?: boolean
-): Component {
+Vue.prototype.$mount = function (el, hydrating) {
     el = el && inBrowser ? query(el) : undefined;
-    return mountComponent(this, el, hydrating);
+
+    const vm = this;
+    // 初始化$el属性
+    vm.$el = el;
+
+    !vm.$options.render && (vm.$options.render = createEmptyVNode);
+
+    // 触发生命周期钩子
+    callHook(vm, "beforeMount");
+
+    // 创建watcher
+    new Watcher(
+        vm,
+        () => {
+            vm._update(vm._render(), hydrating);
+        },
+        noop,
+        {
+            before() {
+                if (vm._isMounted && !vm._isDestroyed) {
+                    callHook(vm, "beforeUpdate");
+                }
+            },
+        },
+        true
+    );
+    hydrating = false;
+
+    // 触发生命周期钩子
+    if (vm.$vnode == null) {
+        vm._isMounted = true;
+        callHook(vm, "mounted");
+    }
+    return vm;
 };
 
 export default Vue;

@@ -139,22 +139,6 @@ export function createPatchFunction(backend) {
         const tag = vnode.tag;
 
         if (isDef(tag)) {
-            if (process.env.NODE_ENV !== "production") {
-                if (data && data.pre) {
-                    creatingElmInVPre++;
-                }
-                if (isUnknownElement(vnode, creatingElmInVPre)) {
-                    warn(
-                        "Unknown custom element: <" +
-                            tag +
-                            "> - did you " +
-                            "register the component correctly? For recursive components, " +
-                            'make sure to provide the "name" option.',
-                        vnode.context
-                    );
-                }
-            }
-
             // 创建vnode的元素节点
             vnode.elm = nodeOps.createElement(tag, vnode);
 
@@ -181,28 +165,19 @@ export function createPatchFunction(backend) {
     }
 
     function createComponent(vnode, insertedVnodeQueue, parentElm, refElm) {
-        let i = vnode.data;
-        if (isDef(i)) {
-            const isReactivated = isDef(vnode.componentInstance) && i.keepAlive;
-            // 执行data上的init hook
-            if (isDef((i = i.hook)) && isDef((i = i.init))) {
-                i(vnode, false);
-            }
+        const data = vnode.data;
+        const hook = data.hook;
+        const isReactivated = isDef(vnode.componentInstance) && data.keepAlive;
 
-            if (isDef(vnode.componentInstance)) {
-                initComponent(vnode, insertedVnodeQueue);
-                insert(parentElm, vnode.elm, refElm);
-                if (isTrue(isReactivated)) {
-                    reactivateComponent(
-                        vnode,
-                        insertedVnodeQueue,
-                        parentElm,
-                        refElm
-                    );
-                }
-                return true;
-            }
+        // 执行data上的init hook，初始化组件实例
+        hook.init(vnode, false);
+
+        initComponent(vnode, insertedVnodeQueue);
+        insert(parentElm, vnode.elm, refElm);
+        if (isTrue(isReactivated)) {
+            reactivateComponent(vnode, insertedVnodeQueue, parentElm, refElm);
         }
+        return true;
     }
 
     function initComponent(vnode, insertedVnodeQueue) {
@@ -225,10 +200,6 @@ export function createPatchFunction(backend) {
 
     function reactivateComponent(vnode, insertedVnodeQueue, parentElm, refElm) {
         let i;
-        // hack for #4339: a reactivated component with inner transition
-        // does not trigger because the inner node's created hooks are not called
-        // again. It's not ideal to involve module-specific logic in here but
-        // there doesn't seem to be a better way to do it.
         let innerNode = vnode;
         while (innerNode.componentInstance) {
             innerNode = innerNode.componentInstance._vnode;
@@ -240,8 +211,6 @@ export function createPatchFunction(backend) {
                 break;
             }
         }
-        // unlike a newly created component,
-        // a reactivated keep-alive component doesn't insert itself
         insert(parentElm, vnode.elm, refElm);
     }
 
