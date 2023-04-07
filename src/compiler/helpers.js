@@ -118,7 +118,6 @@ export function addHandler(
         }
     }
 
-    // check capture modifier
     if (modifiers.capture) {
         delete modifiers.capture;
         name = prependModifierMarker("!", name, dynamic);
@@ -127,7 +126,6 @@ export function addHandler(
         delete modifiers.once;
         name = prependModifierMarker("~", name, dynamic);
     }
-    /* istanbul ignore if */
     if (modifiers.passive) {
         delete modifiers.passive;
         name = prependModifierMarker("&", name, dynamic);
@@ -141,17 +139,13 @@ export function addHandler(
         events = el.events || (el.events = {});
     }
 
-    const newHandler: any = rangeSetItem(
-        { value: value.trim(), dynamic },
-        range
-    );
+    const newHandler = rangeSetItem({ value: value.trim(), dynamic }, range);
 
     if (modifiers !== emptyObject) {
         newHandler.modifiers = modifiers;
     }
 
     const handlers = events[name];
-    /* istanbul ignore if */
     if (Array.isArray(handlers)) {
         important ? handlers.unshift(newHandler) : handlers.push(newHandler);
     } else if (handlers) {

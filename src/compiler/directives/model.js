@@ -3,11 +3,7 @@
 /**
  * Cross-platform code generation for component v-model
  */
-export function genComponentModel(
-    el: ASTElement,
-    value: string,
-    modifiers: ?ASTModifiers
-): ?boolean {
+export function genComponentModel(el, value, modifiers) {
     const { number, trim } = modifiers || {};
 
     const baseValueExpression = "$$v";
@@ -64,7 +60,7 @@ type ModelParseResult = {
     key: string | null,
 };
 
-export function parseModel(val: string): ModelParseResult {
+export function parseModel(val) {
     val = val.trim();
     len = val.length;
 

@@ -455,7 +455,6 @@ function processAttrs(el) {
             }
 
             if (bindRE.test(name)) {
-                // v-bind / :
                 name = name.replace(bindRE, "");
                 value = parseFilters(value);
                 isDynamic = dynamicArgRE.test(name); // [name]
@@ -524,7 +523,6 @@ function processAttrs(el) {
                     addAttr(el, name, value, list[i], isDynamic);
                 }
             } else if (onRE.test(name)) {
-                // v-on
                 name = name.replace(onRE, "");
                 isDynamic = dynamicArgRE.test(name);
                 if (isDynamic) {
@@ -756,8 +754,6 @@ export function parse(template, options) {
             }
         }
 
-        // final children cleanup
-        // filter out scoped slots
         element.children = element.children.filter((c) => !c.slotScope);
 
         // remove trailing whitespace node again
@@ -817,6 +813,9 @@ export function parse(template, options) {
         shouldKeepComment: options.comments,
         outputSourceRange: options.outputSourceRange,
         start(tag, attrs, unary, start, end) {
+            // 1. 创建ast节点
+            // 2. 处理v-if、v-for、v-once
+
             // 创建AST节点
             let element = createASTElement(tag, attrs, currentParent);
 
@@ -887,8 +886,15 @@ export function parse(template, options) {
         },
 
         end(tag, start, end) {
+            // 1. 在栈中获取到结束标签对应的ast节点
+            // 2. 处理key属性 :key
+            // 3. 处理ref属性 :ref
+            // 4. 处理插槽 :v-slot
+            // 5. 处理动态组件 :is
+            // 6. 处理其余属性、事件、指令
+            //  1）符合指令格式，按属性绑定(attrs,props)-事件绑定(events,nativeEvents)-自定义指令的顺序解析(directives)
+            //  2）常规属性 如：type=“text”
             const element = stack[stack.length - 1];
-            // pop stack
             stack.length -= 1;
             currentParent = stack[stack.length - 1];
             if (

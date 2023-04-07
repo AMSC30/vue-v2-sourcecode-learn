@@ -41,7 +41,9 @@ export function generate(ast, options) {
     const state = new CodegenState(options);
     const code = ast ? genElement(ast, state) : '_c("div")';
     return {
-        render: `with(this){return ${code}}`,
+        render: `with(this){
+                    return ${code}
+                }`,
         staticRenderFns: state.staticRenderFns,
     };
 }
@@ -78,7 +80,6 @@ export function genElement(el, state) {
             children ? `,${children}` : "" // children
         })`;
 
-        // module transforms
         for (let i = 0; i < state.transforms.length; i++) {
             code = state.transforms[i](el, code);
         }
@@ -95,7 +96,7 @@ function genStatic(el, state) {
     }
     state.staticRenderFns.push(`with(this){return ${genElement(el, state)}}`);
     state.pre = originalPreState;
-    return `_m(`with(this){return ${genElement(el, state)}`${
+    return `_m(with(this){return ${genElement(el, state)}${
         el.staticInFor ? ",true" : ""
     })`;
 }
@@ -141,9 +142,8 @@ function genIfConditions(conditions, state, altGen, altEmpty) {
 
     const condition = conditions.shift();
     return condition.exp
-        ? `(${condition.exp})?${genElement(
-              condition.block
-          )}:${genIfConditions(conditions, state, altGen, altEmpty)}`
+        ? `(${condition.exp})?${genElement(condition.block)}:
+        ${genIfConditions(conditions, state, altGen, altEmpty)}`
         : `${genTernaryExp(condition.block)}`;
 
     // v-if with v-once should generate code like (a)?_m(0):_m(1)
@@ -205,7 +205,7 @@ export function genData(el, state) {
      *  on:{}
      *  nativeOn:{}
      *  slot: el.slotTarget
-     *  scopedSlots:[]
+     *  scopedSlots:_u([{key,fn,forceUpdate}])
      *  model:{
      *      value: el.model.value,
      *      expressions:el.model.expressions,
@@ -256,21 +256,20 @@ export function genData(el, state) {
     if (el.nativeEvents) {
         data += `${genHandlers(el.nativeEvents, true)},`;
     }
-    // slot target
-    // only for non-scoped slots
+
     if (el.slotTarget && !el.slotScope) {
         data += `slot:${el.slotTarget},`;
     }
-    // scoped slots
+
     if (el.scopedSlots) {
         data += `${genScopedSlots(el, el.scopedSlots, state)},`;
     }
-    // component v-model
+
     if (el.model) {
-        const model = el.model.value
+        const model = el.model;
         data += `model:{value:${model.value},callback:${model.callback},expression:${model.expression}},`;
     }
-    // inline-template
+
     if (el.inlineTemplate) {
         const inlineTemplate = genInlineTemplate(el, state);
         if (inlineTemplate) {
@@ -279,28 +278,19 @@ export function genData(el, state) {
     }
 
     data = data.replace(/,$/, "") + "}";
-    // v-bind dynamic argument wrap
-    // v-bind with dynamic arguments must be applied using the same v-bind object
-    // merge helper so that class/style/mustUseProp attrs are handled correctly.
     if (el.dynamicAttrs) {
         data = `_b(${data},"${el.tag}",${genProps(el.dynamicAttrs)})`;
     }
-    // v-bind data wrap
     if (el.wrapData) {
-        // `_b(${code},'${el.tag}',${dir.value},${
-        //     dir.modifiers && dir.modifiers.prop ? "true" : "false"
-        // }${dir.modifiers && dir.modifiers.sync ? ",true" : ""})`;
         data = el.wrapData(data);
     }
-    // v-on data wrap
     if (el.wrapListeners) {
-        // `_g(${code},${dir.value})`
         data = el.wrapListeners(data);
     }
     return data;
 }
 
-function genDirectives(el, state){
+function genDirectives(el, state) {
     const dirs = el.directives;
     if (!dirs) return;
 
@@ -314,6 +304,10 @@ function genDirectives(el, state){
         const gen = state.directives[dir.name];
 
         if (gen) {
+            // on：el.wrapListeners->fn
+            // html：el.props.innerHTML
+            // text：el.props.textContent
+            // model：el.model->{value,expression,callback}/。。。
             needRuntime = !!gen(el, dir, state.warn);
         }
 
@@ -365,7 +359,6 @@ function genInlineTemplate(el: ASTElement, state: CodegenState): ?string {
 }
 
 function genScopedSlots(el, slots, state) {
-
     let needsForceUpdate =
         el.for ||
         Object.keys(slots).some((key) => {
@@ -374,21 +367,12 @@ function genScopedSlots(el, slots, state) {
                 slot.slotTargetDynamic ||
                 slot.if ||
                 slot.for ||
-                containsSlotChild(slot) // is passing down slot from parent which may be dynamic
+                containsSlotChild(slot)
             );
         });
 
-    // #9534: if a component with scoped slots is inside a conditional branch,
-    // it's possible for the same component to be reused but with different
-    // compiled slot content. To avoid that, we generate a unique key based on
-    // the generated code of all the slot contents.
     let needsKey = !!el.if;
 
-    // OR when it is inside another scoped slot or v-for (the reactivity may be
-    // disconnected due to the intermediate scope variable)
-    // #9438, #9506
-    // TODO: this can be further optimized by properly analyzing in-scope bindings
-    // and skip force updating ones that do not actually use scope variables.
     if (!needsForceUpdate) {
         let parent = el.parent;
         while (parent) {
@@ -441,7 +425,7 @@ function containsSlotChild(el: ASTNode): boolean {
     return false;
 }
 
-function genScopedSlot(el , state) {
+function genScopedSlot(el, state) {
     const isLegacySyntax = el.attrsMap["slot-scope"];
     if (el.if && !el.ifProcessed && !isLegacySyntax) {
         return genIf(el, state, genScopedSlot, `null`);
@@ -484,10 +468,7 @@ export function genChildren(el, state, checkSkip, altGenElement, altGenNode) {
                 ? `,1`
                 : `,0`
             : ``;
-        return `${genElement(
-            el,
-            state
-        )}${normalizationType}`;
+        return `${genElement(el, state)}${normalizationType}`;
     }
     const normalizationType = checkSkip
         ? getNormalizationType(children, state.maybeComponent)
