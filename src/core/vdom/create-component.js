@@ -56,20 +56,18 @@ const componentVNodeHooks = {
 
     insert(vnode) {
         const { context, componentInstance } = vnode;
+        // 触发实例的mounted钩子
         if (!componentInstance._isMounted) {
             componentInstance._isMounted = true;
             callHook(componentInstance, "mounted");
         }
+        // 触发实例的activated钩子
         if (vnode.data.keepAlive) {
             if (context._isMounted) {
-                // vue-router#1212
-                // During updates, a kept-alive component's child components may
-                // change, so directly walking the tree here may call activated hooks
-                // on incorrect children. Instead we push them into a queue which will
-                // be processed after the whole patch process ended.
                 queueActivatedComponent(componentInstance);
             } else {
-                activateChildComponent(componentInstance, true /* direct */);
+                // 将实例的_inactive只为false， 并触发activated钩子
+                activateChildComponent(componentInstance, true);
             }
         }
     },
@@ -78,8 +76,10 @@ const componentVNodeHooks = {
         const { componentInstance } = vnode;
         if (!componentInstance._isDestroyed) {
             if (!vnode.data.keepAlive) {
+                // 销毁组件实例
                 componentInstance.$destroy();
             } else {
+                // 将实例的_inactive只为true， 并触发deactivated钩子
                 deactivateChildComponent(componentInstance, true);
             }
         }
@@ -167,12 +167,7 @@ export function createComponentInstanceForVnode(vnode, parent) {
         _parentVnode: vnode,
         parent,
     };
-    // check inline-template render functions
-    const inlineTemplate = vnode.data.inlineTemplate;
-    if (isDef(inlineTemplate)) {
-        options.render = inlineTemplate.render;
-        options.staticRenderFns = inlineTemplate.staticRenderFns;
-    }
+
     return new vnode.componentOptions.Ctor(options);
 }
 

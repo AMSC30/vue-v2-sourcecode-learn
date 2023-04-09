@@ -165,11 +165,11 @@ export function mountComponent(vm, el, hydrating) {
 }
 
 export function updateChildComponent(
-    vm: Component,
-    propsData: ?Object,
-    listeners: ?Object,
-    parentVnode: MountedComponentVNode,
-    renderChildren: ?Array<VNode>
+    vm,
+    propsData,
+    listeners,
+    parentVnode,
+    renderChildren
 ) {
     if (process.env.NODE_ENV !== "production") {
         isUpdatingChildComponent = true;

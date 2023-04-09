@@ -68,7 +68,7 @@ export function _createElement(
         return createEmptyVNode();
     }
 
-    // 插槽处理
+    // 插槽处理：{"componentTag",{},[function(scope){return vnode}]}
     if (Array.isArray(children) && typeof children[0] === "function") {
         data = data || {};
         data.scopedSlots = { default: children[0] };

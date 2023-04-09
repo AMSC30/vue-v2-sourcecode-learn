@@ -145,11 +145,12 @@ export function createPatchFunction(backend) {
             // 创建style的scopedId
             setScope(vnode);
 
-            // 递归创建子节点
+            // 递归创建子节点,深度优先遍历，根节点最后挂载
             createChildren(vnode, children, insertedVnodeQueue);
 
             isDef(data) && invokeCreateHooks(vnode, insertedVnodeQueue);
 
+            // 节点元素挂载
             insert(parentElm, vnode.elm, refElm);
 
             if (process.env.NODE_ENV !== "production" && data && data.pre) {
@@ -172,7 +173,10 @@ export function createPatchFunction(backend) {
         // 执行data上的init hook，初始化组件实例
         hook.init(vnode, false);
 
+        // 挂载vnode的elm，创建ref
         initComponent(vnode, insertedVnodeQueue);
+
+        // 将组件element插入到父节点中
         insert(parentElm, vnode.elm, refElm);
         if (isTrue(isReactivated)) {
             reactivateComponent(vnode, insertedVnodeQueue, parentElm, refElm);
