@@ -175,12 +175,6 @@ export function updateChildComponent(
         isUpdatingChildComponent = true;
     }
 
-    // determine whether component has slot children
-    // we need to do this before overwriting $options._renderChildren.
-
-    // check if there are dynamic scopedSlots (hand-written or compiled but with
-    // dynamic slot names). Static scoped slots compiled from template has the
-    // "$stable" marker.
     const newScopedSlots = parentVnode.data.scopedSlots;
     const oldScopedSlots = vm.$scopedSlots;
     const hasDynamicScopedSlot = !!(

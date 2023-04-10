@@ -590,6 +590,7 @@ export function createPatchFunction(backend) {
 
         const elm = (vnode.elm = oldVnode.elm);
 
+        // 异步组件
         if (isTrue(oldVnode.isAsyncPlaceholder)) {
             if (isDef(vnode.asyncFactory.resolved)) {
                 hydrate(oldVnode.elm, vnode, insertedVnodeQueue);
@@ -599,6 +600,7 @@ export function createPatchFunction(backend) {
             return;
         }
 
+        // 静态节点处理
         if (
             isTrue(vnode.isStatic) &&
             isTrue(oldVnode.isStatic) &&
@@ -609,12 +611,14 @@ export function createPatchFunction(backend) {
             return;
         }
 
+        // 更新子组件
         let i;
         const data = vnode.data;
         if (isDef(data) && isDef((i = data.hook)) && isDef((i = i.prepatch))) {
             i(oldVnode, vnode);
         }
 
+        // 节点更新
         const oldCh = oldVnode.children;
         const ch = vnode.children;
         if (isDef(data) && isPatchable(vnode)) {
