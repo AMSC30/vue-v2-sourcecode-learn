@@ -21,6 +21,8 @@ export const emptyNode = new VNode("", {}, []);
 const hooks = ["create", "activate", "update", "remove", "destroy"];
 
 function sameVnode(a, b) {
+    // 1. tag与key相同、如果是input元素，type应相同
+    // 2. key相同，异步组件构造函数相同并没有error
     return (
         a.key === b.key &&
         ((a.tag === b.tag &&
@@ -437,7 +439,6 @@ export function createPatchFunction(backend) {
                 oldEndVnode = oldCh[--oldEndIdx];
                 newEndVnode = newCh[--newEndIdx];
             } else if (sameVnode(oldStartVnode, newEndVnode)) {
-                // Vnode moved right
                 patchVnode(
                     oldStartVnode,
                     newEndVnode,

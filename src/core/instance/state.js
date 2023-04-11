@@ -84,7 +84,7 @@ function initProps(vm, propsOptions) {
     toggleObserving(true);
 }
 
-function initData(vm: Component) {
+function initData(vm) {
     let data = vm.$options.data;
     data = vm._data =
         typeof data === "function" ? getData(data, vm) : data || {};
@@ -188,7 +188,14 @@ function initComputed(vm, computed) {
 }
 
 export function defineComputed(target, key, userDef) {
-    sharedPropertyDefinition.get = createComputedGetter(key);
+    sharedPropertyDefinition.get = function computedGetter() {
+        const watcher = this._computedWatchers && this._computedWatchers[key];
+        if (watcher) {
+            watcher.dirty && watcher.evaluate();
+            Dep.target && watcher.depend();
+            return watcher.value;
+        }
+    };
     sharedPropertyDefinition.set =
         typeof userDef === "function" ? userDef.set || noop : noop;
 
