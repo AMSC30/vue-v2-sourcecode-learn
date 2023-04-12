@@ -112,7 +112,7 @@ export function createComponent(Ctor, data, context, children, tag) {
 
     data = data || {};
 
-    // 合并各层级options
+    // 合并各层级options并将自己注册到components中
     resolveConstructorOptions(Ctor);
 
     // 处理组件上的v-model，处理为数据绑定和事件绑定

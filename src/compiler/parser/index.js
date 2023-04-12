@@ -259,132 +259,50 @@ function processOnce(el) {
 }
 
 function processSlotContent(el) {
-    let slotScope;
     if (el.tag === "template") {
-        slotScope = getAndRemoveAttr(el, "scope");
-        if (process.env.NODE_ENV !== "production" && slotScope) {
-            warn(
-                `the "scope" attribute for scoped slots have been deprecated and ` +
-                    `replaced by "slot-scope" since 2.5. The new "slot-scope" attribute ` +
-                    `can also be used on plain elements in addition to <template> to ` +
-                    `denote scoped slots.`,
-                el.rawAttrsMap["scope"],
-                true
-            );
+        // 以v-slot或者#开头的属性，取出{name:"v-slot:default",value:"data"}
+        const slotBinding = getAndRemoveAttrByRegex(el, slotRE);
+        if (slotBinding) {
+            const { name, dynamic } = getSlotName(slotBinding);
+            el.slotTarget = name;
+            el.slotTargetDynamic = dynamic; // v-slot:[default]
+            el.slotScope = slotBinding.value || emptySlotScopeToken;
         }
-        el.slotScope = slotScope || getAndRemoveAttr(el, "slot-scope");
-    } else if ((slotScope = getAndRemoveAttr(el, "slot-scope"))) {
-        if (process.env.NODE_ENV !== "production" && el.attrsMap["v-for"]) {
-            warn(
-                `Ambiguous combined usage of slot-scope and v-for on <${el.tag}> ` +
-                    `(v-for takes higher priority). Use a wrapper <template> for the ` +
-                    `scoped slot to make it clearer.`,
-                el.rawAttrsMap["slot-scope"],
-                true
-            );
-        }
-        el.slotScope = slotScope;
-    }
-
-    // slot="xxx"
-    const slotTarget = getBindingAttr(el, "slot");
-    if (slotTarget) {
-        el.slotTarget = slotTarget === '""' ? '"default"' : slotTarget;
-        el.slotTargetDynamic = !!(
-            el.attrsMap[":slot"] || el.attrsMap["v-bind:slot"]
-        );
-        // preserve slot as an attribute for native shadow DOM compat
-        // only for non-scoped slots.
-        if (el.tag !== "template" && !el.slotScope) {
-            addAttr(el, "slot", slotTarget, getRawBindingAttr(el, "slot"));
-        }
-    }
-
-    // 2.6 v-slot syntax
-    if (process.env.NEW_SLOT_SYNTAX) {
-        if (el.tag === "template") {
-            // 以v-slot或者#开头的属性，取出{name:"v-slot:default",value:"data"}
-            const slotBinding = getAndRemoveAttrByRegex(el, slotRE);
-            if (slotBinding) {
-                if (process.env.NODE_ENV !== "production") {
-                    if (el.slotTarget || el.slotScope) {
-                        warn(
-                            `Unexpected mixed usage of different slot syntaxes.`,
-                            el
-                        );
-                    }
-                    if (el.parent && !maybeComponent(el.parent)) {
-                        warn(
-                            `<template v-slot> can only appear at the root level inside ` +
-                                `the receiving component`,
-                            el
-                        );
-                    }
+    } else {
+        // v-slot on component, denotes default slot
+        const slotBinding = getAndRemoveAttrByRegex(el, slotRE);
+        if (slotBinding) {
+            // add the component's children to its default slot
+            /**
+             * el:
+             * {
+             *   scopedSlots:{
+             *      name:{
+             *          tag:"template",
+             *          children:[],
+             *          parent:el,
+             *      }
+             *  }
+             * }
+             * */
+            const slots = el.scopedSlots || (el.scopedSlots = {});
+            const { name, dynamic } = getSlotName(slotBinding);
+            const slotContainer = (slots[name] = createASTElement(
+                "template",
+                [],
+                el
+            ));
+            slotContainer.slotTarget = name;
+            slotContainer.slotTargetDynamic = dynamic;
+            slotContainer.children = el.children.filter((c) => {
+                if (!c.slotScope) {
+                    c.parent = slotContainer;
+                    return true;
                 }
-                const { name, dynamic } = getSlotName(slotBinding);
-                el.slotTarget = name;
-                el.slotTargetDynamic = dynamic; // v-slot:[default]
-                el.slotScope = slotBinding.value || emptySlotScopeToken;
-            }
-        } else {
-            // v-slot on component, denotes default slot
-            const slotBinding = getAndRemoveAttrByRegex(el, slotRE);
-            if (slotBinding) {
-                if (process.env.NODE_ENV !== "production") {
-                    if (!maybeComponent(el)) {
-                        warn(
-                            `v-slot can only be used on components or <template>.`,
-                            slotBinding
-                        );
-                    }
-                    if (el.slotScope || el.slotTarget) {
-                        warn(
-                            `Unexpected mixed usage of different slot syntaxes.`,
-                            el
-                        );
-                    }
-                    if (el.scopedSlots) {
-                        warn(
-                            `To avoid scope ambiguity, the default slot should also use ` +
-                                `<template> syntax when there are other named slots.`,
-                            slotBinding
-                        );
-                    }
-                }
-                // add the component's children to its default slot
-                /**
-                 * el:
-                 * {
-                 *   scopedSlots:{
-                 *   name:{
-                 *      tag:"template",
-                 *      children:[],
-                 *      parent:el,
-                 * }
-                 *
-                 *  }
-                 * }
-                 * */
-                const slots = el.scopedSlots || (el.scopedSlots = {});
-                const { name, dynamic } = getSlotName(slotBinding);
-                const slotContainer = (slots[name] = createASTElement(
-                    "template",
-                    [],
-                    el
-                ));
-                slotContainer.slotTarget = name;
-                slotContainer.slotTargetDynamic = dynamic;
-                slotContainer.children = el.children.filter((c) => {
-                    if (!c.slotScope) {
-                        c.parent = slotContainer;
-                        return true;
-                    }
-                });
-                slotContainer.slotScope =
-                    slotBinding.value || emptySlotScopeToken;
-                el.children = [];
-                el.plain = false;
-            }
+            });
+            slotContainer.slotScope = slotBinding.value || emptySlotScopeToken;
+            el.children = [];
+            el.plain = false;
         }
     }
 }
@@ -405,7 +323,6 @@ function getSlotName(binding) {
           { name: `"${name}"`, dynamic: false };
 }
 
-// handle <slot/> outlets
 function processSlotOutlet(el) {
     if (el.tag === "slot") {
         el.slotName = getBindingAttr(el, "name");
@@ -710,6 +627,8 @@ export function parse(template, options) {
 
                 // element.component->componentIsExp, element['inline-template']
                 processComponent(element);
+
+                // 处理style与class
                 for (let i = 0; i < transforms.length; i++) {
                     element = transforms[i](element, options) || element;
                 }

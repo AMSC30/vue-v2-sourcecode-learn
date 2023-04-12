@@ -200,8 +200,8 @@ export function genData(el, state) {
      *  class: el.classBinding
      *  staticStyle: el.staticStyle
      *  style: el.styleBinding
-     *  attrs:{}
-     *  domProps:{}
+     *  attrs: _d({key:value},[key,value,key,value])
+     *  domProps: _d({key:value},[key,value,key,value])
      *  on:{}
      *  nativeOn:{}
      *  slot: el.slotTarget
@@ -241,26 +241,29 @@ export function genData(el, state) {
         data += state.dataGenFns[i](el);
     }
 
-    // attributes
+    // attributes：attrs:-d()
     if (el.attrs) {
         data += `attrs:${genProps(el.attrs)},`;
     }
-    // DOM props
+    // DOM props:domProps:_d()
     if (el.props) {
         data += `domProps:${genProps(el.props)},`;
     }
-    // event handlers
+    // event handlers on: _d()
     if (el.events) {
         data += `${genHandlers(el.events, false)},`;
     }
+    // nativeOn: _d()
     if (el.nativeEvents) {
         data += `${genHandlers(el.nativeEvents, true)},`;
     }
 
+    // 作为父组件的插槽内容
     if (el.slotTarget && !el.slotScope) {
         data += `slot:${el.slotTarget},`;
     }
 
+    // 接收的插槽内容
     if (el.scopedSlots) {
         data += `${genScopedSlots(el, el.scopedSlots, state)},`;
     }

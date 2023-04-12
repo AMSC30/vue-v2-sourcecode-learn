@@ -21,7 +21,7 @@ function transformNode(el: ASTElement, options: CompilerOptions) {
     if (staticClass) {
         el.staticClass = JSON.stringify(staticClass);
     }
-    const classBinding = getBindingAttr(el, "class", false /* getStatic */);
+    const classBinding = getBindingAttr(el, "class", false);
     if (classBinding) {
         el.classBinding = classBinding;
     }
