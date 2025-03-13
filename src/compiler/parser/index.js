@@ -118,29 +118,27 @@ export function processElement(element, options) {
 function processKey(el) {
     const exp = getBindingAttr(el, "key");
     if (exp) {
-        if (process.env.NODE_ENV !== "production") {
-            if (el.tag === "template") {
+        if (el.tag === "template") {
+            warn(
+                `<template> cannot be keyed. Place the key on real elements instead.`,
+                getRawBindingAttr(el, "key")
+            );
+        }
+        if (el.for) {
+            const iterator = el.iterator2 || el.iterator1;
+            const parent = el.parent;
+            if (
+                iterator &&
+                iterator === exp &&
+                parent &&
+                parent.tag === "transition-group"
+            ) {
                 warn(
-                    `<template> cannot be keyed. Place the key on real elements instead.`,
-                    getRawBindingAttr(el, "key")
+                    `Do not use v-for index as key on <transition-group> children, ` +
+                        `this is the same as not using keys.`,
+                    getRawBindingAttr(el, "key"),
+                    true /* tip */
                 );
-            }
-            if (el.for) {
-                const iterator = el.iterator2 || el.iterator1;
-                const parent = el.parent;
-                if (
-                    iterator &&
-                    iterator === exp &&
-                    parent &&
-                    parent.tag === "transition-group"
-                ) {
-                    warn(
-                        `Do not use v-for index as key on <transition-group> children, ` +
-                            `this is the same as not using keys.`,
-                        getRawBindingAttr(el, "key"),
-                        true /* tip */
-                    );
-                }
             }
         }
         el.key = exp;
@@ -269,7 +267,7 @@ function processSlotContent(el) {
             el.slotScope = slotBinding.value || emptySlotScopeToken;
         }
     } else {
-        // v-slot on component, denotes default slot
+        // v-slot on component, denotes default slot 取出{name:"v-slot:default",value:"data"}
         const slotBinding = getAndRemoveAttrByRegex(el, slotRE);
         if (slotBinding) {
             // add the component's children to its default slot
@@ -277,7 +275,7 @@ function processSlotContent(el) {
              * el:
              * {
              *   scopedSlots:{
-             *      name:{
+             *      [name]:{
              *          tag:"template",
              *          children:[],
              *          parent:el,
@@ -783,9 +781,9 @@ export function parse(template, options) {
             if (inVPre) {
                 processRawAttrs(element);
             } else if (!element.processed) {
-                // el.alias, el.iterator, el.for
+                // 添加el.alias, el.iterator1/el.iterator2, el.for
                 processFor(element);
-                // el.if=exp, el.else=true, el.elseif=exp, el.ifConditions->[{exp}]
+                // el.if=exp, el.else=true, el.elseif=exp, el.ifConditions->[{exp,block}]
                 processIf(element);
 
                 // el.once=true

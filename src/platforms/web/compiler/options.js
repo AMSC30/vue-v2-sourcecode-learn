@@ -22,5 +22,5 @@ export const baseOptions = {
     canBeLeftOpenTag,
     isReservedTag,
     getTagNamespace,
-    staticKeys: genStaticKeys(modules),
+    staticKeys: genStaticKeys(modules), // 'staticStyle,staticClass'
 };

@@ -205,7 +205,7 @@ export function genData(el, state) {
      *  on:{}
      *  nativeOn:{}
      *  slot: el.slotTarget
-     *  scopedSlots:_u([{key,fn,forceUpdate}])
+     *  scopedSlots:_u([{key,fn:fn(scope){_c(""),proxy,forceUpdate}])
      *  model:{
      *      value: el.model.value,
      *      expressions:el.model.expressions,
@@ -236,12 +236,12 @@ export function genData(el, state) {
         data += `tag:"${el.tag}",`;
     }
 
-    // 处理class=  class=  :style=  style=
+    // 处理class=  :class=  :style=  style=
     for (let i = 0; i < state.dataGenFns.length; i++) {
         data += state.dataGenFns[i](el);
     }
 
-    // attributes：attrs:-d()
+    // attributes：attrs:_d()
     if (el.attrs) {
         data += `attrs:${genProps(el.attrs)},`;
     }
@@ -307,6 +307,7 @@ function genDirectives(el, state) {
         const gen = state.directives[dir.name];
 
         if (gen) {
+            // bind: el.wrapperData->fn
             // on：el.wrapListeners->fn
             // html：el.props.innerHTML
             // text：el.props.textContent

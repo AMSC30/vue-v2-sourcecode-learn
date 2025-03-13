@@ -106,11 +106,11 @@ function genHandler(handler) {
         return `[${handler.map((handler) => genHandler(handler)).join(",")}]`;
     }
 
-    const isMethodPath = simplePathRE.test(handler.value);
-    const isFunctionExpression = fnExpRE.test(handler.value);
+    const isMethodPath = simplePathRE.test(handler.value); // handleChange
+    const isFunctionExpression = fnExpRE.test(handler.value); // ()=>handleChange()
     const isFunctionInvocation = simplePathRE.test(
         handler.value.replace(fnInvokeRE, "")
-    );
+    ); // handleChange()
 
     if (!handler.modifiers) {
         if (isMethodPath || isFunctionExpression) {

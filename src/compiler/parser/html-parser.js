@@ -71,6 +71,7 @@ export function parseHTML(html, options) {
             let textEnd = html.indexOf("<");
             // 以左尖括号开头
             if (textEnd === 0) {
+                // 注释节点
                 if (comment.test(html)) {
                     const commentEnd = html.indexOf("-->");
 
